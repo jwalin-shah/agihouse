@@ -266,7 +266,11 @@ async function main() {
   connectWS()
 
   // Start IMU for attention gate
-  await bridge.imuControl(true, ImuReportPace.P500)
+  try {
+    await bridge.imuControl(true, ImuReportPace.P500)
+  } catch (err) {
+    console.warn('[g2] IMU unavailable; continuing without attention gate', err)
+  }
 
   // Subscribe to all events
   const unsubscribe = bridge.onEvenHubEvent((event) => {
