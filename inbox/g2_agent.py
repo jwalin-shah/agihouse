@@ -36,8 +36,8 @@ OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # DeepSeek models via OpenRouter
-MODEL_FAST = "deepseek/deepseek-chat"          # DeepSeek V3 — fast, cheap, per-agent insight
-MODEL_REASON = "deepseek/deepseek-r1"          # DeepSeek R1 — reasoning, for arbitration
+MODEL_FAST = "deepseek/deepseek-v4-pro"        # DeepSeek V4 Pro — used for both insight + arbitration
+MODEL_REASON = "deepseek/deepseek-v4-pro"      # same; reasoning model would be too slow for the 10s cycle
 
 # Agent polling intervals (seconds)
 INTERVAL_CALENDAR   = 60
@@ -197,7 +197,7 @@ async def _llm(prompt: str, system: str, model: str = MODEL_FAST, max_tokens: in
         logger.warning("[llm] OPENROUTER_API_KEY not set")
         return None
     try:
-        async with httpx.AsyncClient(timeout=12.0) as client:
+        async with httpx.AsyncClient(timeout=25.0) as client:
             resp = await client.post(
                 OPENROUTER_URL,
                 headers={
@@ -216,7 +216,17 @@ async def _llm(prompt: str, system: str, model: str = MODEL_FAST, max_tokens: in
                 },
             )
             resp.raise_for_status()
-            return resp.json()["choices"][0]["message"]["content"].strip()
+            payload = resp.json()
+            choices = payload.get("choices") or []
+            if not choices:
+                logger.warning(f"[llm] {model} empty choices: {payload}")
+                return None
+            content = (choices[0].get("message") or {}).get("content")
+            if not content or not content.strip():
+                # Some reasoning models return an empty content with reasoning_content;
+                # fall back to that so we still get a usable response.
+                content = (choices[0].get("message") or {}).get("reasoning_content") or ""
+            return content.strip() or None
     except Exception as e:
         logger.warning(f"[llm] {model} failed: {e}")
         return None
@@ -554,7 +564,9 @@ reasoning = one sentence explaining your choice (for the demo panel).
 async def arbitrator_loop(blackboard: Blackboard, ws_manager: G2WebSocketManager) -> None:
     """
     Reads the blackboard every 10s.
-    Calls DeepSeek R1 (reasoning model) to decide what to show.
+    Calls DeepSeek V3 (fast chat model) to decide what to show — R1's reasoning
+    latency (15-30s) is too long for a 10s cycle and the decision here is
+    constrained enough that V3 handles it cleanly.
     Pushes HUD commands to all connected G2 clients.
     Runs independently, forever.
     """
@@ -586,8 +598,8 @@ async def arbitrator_loop(blackboard: Blackboard, ws_manager: G2WebSocketManager
             raw = await _llm(
                 prompt="\n".join(context_lines),
                 system=ARBITRATOR_SYSTEM,
-                model=MODEL_REASON,
-                max_tokens=150,
+                model=MODEL_FAST,
+                max_tokens=200,
             )
 
             if not raw:

@@ -10,7 +10,11 @@
     {
       "name": "network",
       "desc": "Connects to local agent server for HUD commands",
-      "whitelist": ["ws://localhost:9849", "ws://127.0.0.1:9849"]
+      "whitelist": [
+        "ws://localhost:9849",
+        "ws://127.0.0.1:9849",
+        "ws://192.168.2.232:9849"
+      ]
     },
     {
       "name": "g2-microphone",
