@@ -1,8 +1,7 @@
+/// <reference types="vite/client" />
 import {
   ImuReportPace,
   OsEventTypeList,
-  setBackgroundState,
-  onBackgroundRestore,
   waitForEvenAppBridge,
 } from '@evenrealities/even_hub_sdk'
 import { setBridge, initHUD, showHUD, clearHUD } from './hud'
@@ -19,19 +18,34 @@ let socket: WebSocket | null = null
 let lastLine1 = ''
 let lastLine2 = ''
 
-// IMU attention gate — rolling variance over last 5 samples
+// IMU attention gate — rolling variance over last 10 samples
 const imuWindow: number[] = []
 const IMU_WINDOW_SIZE = 10
 const FOCUSED_VARIANCE_THRESHOLD = 0.02
 
-// ── Background state persistence ──────────────────────────────────────────────
+// ── State persistence (localStorage) ──────────────────────────────────────────
 
-setBackgroundState('hudState', () => ({ lastLine1, lastLine2 }))
-onBackgroundRestore('hudState', (saved) => {
-  const s = saved as { lastLine1: string; lastLine2: string }
-  lastLine1 = s.lastLine1 ?? ''
-  lastLine2 = s.lastLine2 ?? ''
-})
+const HUD_STATE_KEY = 'g2.hudState'
+
+function loadHudState() {
+  try {
+    const raw = localStorage.getItem(HUD_STATE_KEY)
+    if (!raw) return
+    const s = JSON.parse(raw) as { lastLine1?: string; lastLine2?: string }
+    lastLine1 = s.lastLine1 ?? ''
+    lastLine2 = s.lastLine2 ?? ''
+  } catch {
+    // ignore
+  }
+}
+
+function persistHudState() {
+  try {
+    localStorage.setItem(HUD_STATE_KEY, JSON.stringify({ lastLine1, lastLine2 }))
+  } catch {
+    // ignore
+  }
+}
 
 // ── WebSocket ─────────────────────────────────────────────────────────────────
 
@@ -52,10 +66,12 @@ function connectWS() {
       if (msg.type === 'hud') {
         lastLine1 = msg.line1 ?? ''
         lastLine2 = msg.line2 ?? ''
+        persistHudState()
         showHUD(lastLine1, lastLine2)
       } else if (msg.type === 'clear') {
         lastLine1 = ''
         lastLine2 = ''
+        persistHudState()
         clearHUD()
       }
     } catch {
@@ -100,6 +116,8 @@ function onImuData(x: number, y: number, z: number) {
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
 async function main() {
+  loadHudState()
+
   const bridge = await waitForEvenAppBridge()
   setBridge(bridge)
 
@@ -124,12 +142,13 @@ async function main() {
     }
 
     // Double-tap → exit
-    if ((event.sysEvent?.eventType ?? 0) === OsEventTypeList.DOUBLE_CLICK_EVENT) {
+    if (event.sysEvent?.eventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
       bridge.shutDownPageContainer(1)
     }
 
-    // Foreground restored → reconnect WebSocket
-    if ((event.sysEvent?.eventType ?? 0) === OsEventTypeList.FOREGROUND_ENTER_EVENT) {
+    // Foreground restored → reconnect WebSocket and replay last HUD
+    if (event.sysEvent?.eventType === OsEventTypeList.FOREGROUND_ENTER_EVENT) {
+      loadHudState()
       connectWS()
       if (lastLine1) showHUD(lastLine1, lastLine2)
     }

@@ -18,11 +18,13 @@ dependencies = [
     "pydantic>=2.12.5",
     "pyobjc-framework-applicationservices>=12.1",
     "pyobjc-framework-Quartz>=10.0",
+    "python-dotenv>=1.2.2",
     "python-multipart>=0.0.24",
     "rich>=14.3.3",
     "sounddevice>=0.5.0",
     "textual>=8.2.3",
     "uvicorn>=0.34.0",
+    "websockets>=13.0",
 ]
 
 [dependency-groups]

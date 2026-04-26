@@ -41,11 +41,19 @@ background. The rolling transcript buffer is available at `GET /ambient/transcri
 **What we add to the inbox server for the hackathon — three things:**
 1. `WebSocket /g2/ws` — the G2 phone WebView connects here and receives HUD commands
 2. `POST /g2/signal` — demo control panel calls this to inject scenario signals
-3. `g2_agent_loop()` — an asyncio background task that reads existing endpoints, runs the
-   arbitrator (Claude Sonnet), and pushes HUD commands to connected WebSocket clients
+3. `g2_agent.py` — six asyncio tasks (5 specialist agents + 1 arbitrator) that read
+   existing endpoints, run the arbitrator (DeepSeek R1 via OpenRouter), and push HUD
+   commands to connected WebSocket clients
 
-The G2 Vite app is then ~80 lines: connect to the WebSocket, receive `{line1, line2}`,
-call `bridge.rebuildPageContainer`. That's it.
+The G2 Vite app is then ~150 lines: connect to the WebSocket, receive `{line1, line2}`,
+call `bridge.textContainerUpgrade` / `rebuildPageContainer`. That's it.
+
+**Model choice (current build):** DeepSeek V3 (`deepseek/deepseek-chat`) for per-agent
+insight extraction, DeepSeek R1 (`deepseek/deepseek-r1`) for arbitration — both routed
+through OpenRouter. DeepSeek's context caching is automatic on stable prompt prefixes
+(no `cache_control` header needed); the arbitrator system prompt is reused every cycle,
+so caching kicks in for free. Swap to Claude Haiku/Sonnet if you want — same interface,
+different `Authorization` header and `model` field.
 
 ---
 
@@ -151,7 +159,7 @@ Whisper API call needed — the laptop IS the ASR engine.
 | **App lifecycle** | Host app | Foreground enter, foreground exit, abnormal exit | `sysEvent.eventType` 4 / 5 / 6 |
 | **Launch source** | Host app | Did user open from app menu or glasses menu | `bridge.onLaunchSource` → `'appMenu'` or `'glassesMenu'` |
 | **Local storage** | Even Hub app | Key-value string persistence across restarts | `bridge.setLocalStorage` / `bridge.getLocalStorage` |
-| **Background state** | SDK | State snapshot across phone background/foreground | `setBackgroundState` / `onBackgroundRestore` |
+| **Background state** | (no SDK API in 0.0.10) | Persist HUD state yourself via `localStorage` or `setLocalStorage`; replay via `FOREGROUND_ENTER_EVENT` and a server-side last-HUD cache | The IDEA's `setBackgroundState`/`onBackgroundRestore` calls don't exist in the shipped SDK — see notes below |
 
 ### Via `app.json` permissions (phone sensors, declared up-front)
 
@@ -169,9 +177,9 @@ Whisper API call needed — the laptop IS the ASR engine.
 | Signal | API | What you get |
 |---|---|---|
 | **Calendar events** | Google Calendar API | Upcoming meetings, attendees, location, last talking points |
-| **Speech → text** | OpenAI Whisper | Full transcription of ambient audio |
-| **Insight extraction** | Claude Haiku (fast + cheap) | Action items, names, topics mentioned in conversation |
-| **Arbitration** | Claude Sonnet | Reads blackboard, decides what to show and when |
+| **Speech → text** | MLX Whisper (local, on-device) | Full transcription of ambient audio — already running |
+| **Insight extraction** | DeepSeek V3 via OpenRouter (built); Claude Haiku alt | Action items, names, topics mentioned in conversation |
+| **Arbitration** | DeepSeek R1 via OpenRouter (built); Claude Sonnet alt | Reads blackboard, decides what to show and when |
 | **Weather** | Open-Meteo (free, no key) | Current conditions, UV index, precipitation |
 | **Traffic / ETA** | Google Maps API | Commute time, departure nudge |
 | **News / topics** | Any RSS or news API | Briefing before meetings on relevant topics |
@@ -420,8 +428,8 @@ is indistinguishable from reality.
 | **Memory** | `MemoryStore` SQLite | Already built |
 | **G2 WebSocket** | FastAPI WebSocket in inbox_server | NEW — ~30 lines to add |
 | **G2 agent loop** | asyncio background task | NEW — ~100 lines to add |
-| **Insight extraction** | Claude Haiku (`claude-haiku-4-5-20251001`) | NEW — cheap, fast per-transcript call |
-| **Arbitration** | Claude Sonnet (`claude-sonnet-4-6`) | NEW — reads all signals, decides HUD |
+| **Insight extraction** | DeepSeek V3 (`deepseek/deepseek-chat`) via OpenRouter | DONE — cheap, fast per-transcript call |
+| **Arbitration** | DeepSeek R1 (`deepseek/deepseek-r1`) via OpenRouter | DONE — reads all signals, decides HUD; auto-cached prompt |
 | **G2 Vite app** | Vite + TypeScript + Even Hub SDK | NEW — ~80 lines, just WebSocket + HUD push |
 | **Demo control panel** | Plain HTML + fetch (localhost:4000) | NEW — zero deps, big buttons |
 | **Dev tunnel** | ngrok | Fallback if hackathon WiFi is flaky |
@@ -464,21 +472,23 @@ demo/                           ← NEW: demo control panel (open in browser, lo
 
 ## Things Still Missing From The Plan
 
-### 1. The inbox server already has AI endpoints — use them
+### 1. AI endpoints — what's actually available
 
-Reading the `inbox/` code reveals it already has AI endpoints we can call directly instead of
-rebuilding the logic:
+Reading the running `inbox_server.py` reveals only one AI-adjacent endpoint exists in the
+current build:
 
 | Endpoint | What it does | Use in G2 agent |
 |---|---|---|
-| `POST /ai/briefing` | Calendar + reminders + unread + local LLM summary | Call when glasses put on → morning brief on HUD |
-| `POST /ai/extract-actions` | `{text}` → action items from conversation text | Feed recent transcript → extract what needs doing |
-| `POST /ai/triage` | Score conversations urgent / normal / low | Messages agent uses this to gate what surfaces |
-| `GET /ambient/transcript` | Rolling MLX Whisper buffer | Ambient agent reads this, no audio piping needed |
+| `GET /ambient/transcript` | Rolling MLX Whisper buffer | ✅ transcript_agent reads this |
+| `POST /autocomplete` | Local Qwen draft completion (TUI feature, not agent-shaped) | Not used by G2 |
 
-The local Qwen model (0.8B / 3B on MLX) already does action extraction and triage. Claude
-Sonnet only needs to handle the final arbitration — "of all signals, what single thing to show
-right now." This keeps Claude calls to one every 10–15s, not per-transcript.
+Originally the IDEA assumed `/ai/briefing`, `/ai/extract-actions`, `/ai/triage` — those
+were never built into `inbox_server.py`. Instead, each G2 agent calls DeepSeek directly
+through `_llm()` in `g2_agent.py`. The local Qwen model is reserved for the TUI's
+autocomplete; remote DeepSeek does insight extraction (V3) and arbitration (R1).
+
+If you want to consolidate, expose the agent's `_llm()` helper as `POST /ai/llm` and reuse
+across the rest of the inbox UI — but for the demo it's clean enough as-is.
 
 ---
 
@@ -503,16 +513,16 @@ changes. Bake the ngrok URL into the G2 app before the hackathon starts, not dur
 
 ### 3. Prompt caching on the arbitrator
 
-The arbitrator calls Claude Sonnet every 10–15 seconds. Without caching, every call pays full
-price for the system prompt. The system prompt is large (user context, blackboard format,
-output rules, HUD constraints) — and it never changes within a session.
+The arbitrator fires every 10s. Caching matters for cost.
 
-With Anthropic prompt caching, add `"cache_control": {"type": "ephemeral"}` to the system
-prompt block. The cache TTL is 5 minutes. As long as the arbitrator fires within 5 minutes of
-the last call (it will — it's every 10s), the system prompt is served from cache at ~10% of
-the normal token cost.
+- **Anthropic Claude (alt path):** add `"cache_control": {"type": "ephemeral"}` to the
+  system block. 5-minute TTL. Required to keep the bill in check.
+- **DeepSeek via OpenRouter (current build):** caching is automatic on stable prompt
+  prefixes — no header needed. The arbitrator's `ARBITRATOR_SYSTEM` constant is reused
+  every cycle, so caching kicks in for free starting on the second call. No code change
+  required.
 
-This is the difference between "sustainable for an 8-hour hackathon" and a surprise API bill.
+Either way, keep the system prompt as the first message and never mutate it mid-session.
 
 ---
 
@@ -580,17 +590,28 @@ updating an existing one.
 
 ---
 
-### 7. Background state — WebSocket reconnection
+### 7. Background state — WebSocket reconnection — ✅ DONE
 
-When the phone goes to background (user locks screen, switches apps), the WebSocket connection
-drops. On foreground return, the G2 app needs to reconnect and re-render the last known HUD state.
+When the phone goes to background (user locks screen, switches apps), the WebSocket
+connection drops. On foreground return the G2 app reconnects and the laptop replays the
+last HUD it broadcast.
 
-The `background-state` skill handles this for app-internal state. But the WebSocket itself
-needs explicit reconnect logic on `FOREGROUND_ENTER_EVENT` (event type 4). The inbox server
-should also track the last HUD push so it can replay it on reconnect.
+**SDK reality:** `setBackgroundState`/`onBackgroundRestore` (referenced in older docs and
+the `background-state` skill) **are not exported from `@evenrealities/even_hub_sdk@0.0.10`**.
+What is available:
 
-Without this, putting your phone in your pocket and taking it out resets the HUD to blank —
-embarrassing during the demo when you hand the glasses to a judge.
+- `bridge.setLocalStorage(key, value)` / `bridge.getLocalStorage(key)` — host-app KV store
+- `OsEventTypeList.FOREGROUND_ENTER_EVENT` (4) — fired via `bridge.onEvenHubEvent`
+
+**Implementation in this build:**
+- `g2-app/src/main.ts` writes the last `{lastLine1, lastLine2}` to the WebView's
+  `localStorage`, listens for `FOREGROUND_ENTER_EVENT`, reloads the saved state, and
+  reconnects the WebSocket.
+- `inbox/g2_agent.py::G2WebSocketManager` caches `_last_hud` on every `broadcast_hud`
+  and immediately re-sends it inside `connect()` so any new client gets the current HUD
+  state instantly. (Also clears it on `broadcast_clear`.)
+
+This means: pocket the phone, take it out, glasses still show what they should.
 
 ---
 
@@ -634,15 +655,19 @@ Stop adding features at hour 5. Hours 6–8 are for hardening and the story.
 
 There's a $1,000 cross-track prize for the best use of G2 hardware — separate from Track 1.
 This build is a strong candidate because it uses:
-- `g2-microphone` permission (audio capture)
-- IMU (`imuControl`) for attention gate
-- Wearing detection (`onDeviceStatusChanged`)
-- Custom HUD layouts with Unicode icons
-- `textContainerUpgrade` for smooth countdown
-- `setBackgroundState` for WebSocket reconnection
+- `g2-microphone` permission (audio capture, declared in `app.json`)
+- IMU (`bridge.imuControl(true, ImuReportPace.P500)`) for the attention gate
+- Wearing detection (`bridge.onDeviceStatusChanged(status.isWearing)`) → fires the
+  morning/context brief on glasses-on edge
+- Custom HUD layouts with Unicode category icons
+- `bridge.textContainerUpgrade` for smooth in-place countdown updates (no flicker)
+- `bridge.shutDownPageContainer(1)` on `DOUBLE_CLICK_EVENT` for clean exit
+- WebView `localStorage` + `FOREGROUND_ENTER_EVENT` for state persistence
+- Server-side `_last_hud` cache replayed on every WebSocket connect — the HUD never
+  blanks across reconnects
 
-Most teams will use the HUD and maybe the mic. Using IMU + wearing detection + background
-state + the update API puts this build in a different class for the integration prize.
+Most teams will use the HUD and maybe the mic. Using IMU + wearing detection + reconnect
+replay + the update API puts this build in a different class for the integration prize.
 Explicitly mention all of these in the submission form.
 
 ---

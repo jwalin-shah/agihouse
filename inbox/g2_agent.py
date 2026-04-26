@@ -21,8 +21,13 @@ from datetime import datetime
 from typing import Any
 
 import httpx
+from dotenv import load_dotenv
 from fastapi import WebSocket
 from loguru import logger
+
+# Load .env from this file's directory, overriding any pre-existing shell env vars
+# so the project's own API keys win over stale exports in the user's shell.
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"), override=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +48,12 @@ INTERVAL_ARBITRATOR = 10
 
 # Attention state sent from G2 phone
 _attention_state: str = "ambient"   # "ambient" | "focused"
+
+# Wearing state from G2 hardware (onDeviceStatusChanged.isWearing)
+# Edge-detected: when off→on we fire a one-shot morning/context brief signal.
+_wearing_state: bool = False
+_wearing_changed_at: float = 0.0
+_last_wearing_brief_at: float = 0.0
 
 
 # ── Blackboard ────────────────────────────────────────────────────────────────
@@ -127,11 +138,18 @@ class G2WebSocketManager:
 
     def __init__(self) -> None:
         self._connections: set[WebSocket] = set()
+        self._last_hud: dict | None = None  # last broadcast HUD payload, for reconnect replay
 
     async def connect(self, ws: WebSocket) -> None:
         await ws.accept()
         self._connections.add(ws)
         logger.info(f"[g2-ws] client connected ({len(self._connections)} total)")
+        # Replay last HUD state so reconnects (phone background→foreground) don't blank the screen
+        if self._last_hud is not None:
+            try:
+                await ws.send_json(self._last_hud)
+            except Exception:
+                pass
 
     def disconnect(self, ws: WebSocket) -> None:
         self._connections.discard(ws)
@@ -139,6 +157,7 @@ class G2WebSocketManager:
 
     async def broadcast_hud(self, line1: str, line2: str) -> None:
         payload = {"type": "hud", "line1": line1, "line2": line2}
+        self._last_hud = payload
         dead: set[WebSocket] = set()
         for ws in self._connections:
             try:
@@ -149,6 +168,7 @@ class G2WebSocketManager:
 
     async def broadcast_clear(self) -> None:
         payload = {"type": "clear"}
+        self._last_hud = None
         dead: set[WebSocket] = set()
         for ws in self._connections:
             try:
@@ -159,9 +179,15 @@ class G2WebSocketManager:
 
     def handle_message(self, data: dict) -> None:
         """Handle messages coming FROM the G2 phone (IMU, wearing state)."""
-        global _attention_state
-        if data.get("type") == "imu":
+        global _attention_state, _wearing_state, _wearing_changed_at
+        msg_type = data.get("type")
+        if msg_type == "imu":
             _attention_state = data.get("attentionState", "ambient")
+        elif msg_type == "wearing":
+            new_wearing = bool(data.get("isWearing", False))
+            if new_wearing != _wearing_state:
+                _wearing_state = new_wearing
+                _wearing_changed_at = time.time()
 
 
 # ── OpenRouter LLM ────────────────────────────────────────────────────────────
@@ -479,10 +505,31 @@ async def context_agent(blackboard: Blackboard) -> None:
                     ttl=300,
                 ))
 
+            # Wearing detection: glasses just put on → fire morning/context brief.
+            # Throttled to once per 10 minutes so toggling glasses doesn't spam.
+            global _last_wearing_brief_at
+            now_ts = time.time()
+            if (
+                _wearing_state
+                and _wearing_changed_at > 0
+                and (now_ts - _wearing_changed_at) < 5
+                and (now_ts - _last_wearing_brief_at) > 600
+            ):
+                _last_wearing_brief_at = now_ts
+                hh = now.strftime("%H:%M")
+                await blackboard.write(Signal(
+                    agent_id="context",
+                    priority=5,
+                    category="system",
+                    data={"label": f"○ HELLO  {hh}", "message": "Glasses on"},
+                    ttl=20,
+                ))
+
         except Exception as e:
             logger.warning(f"[context_agent] error: {e}")
 
-        await asyncio.sleep(60)
+        # Faster cadence so wearing-edge fires within ~3s of glasses going on
+        await asyncio.sleep(3)
 
 
 # ── Arbitrator ────────────────────────────────────────────────────────────────
