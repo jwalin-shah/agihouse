@@ -1,16 +1,24 @@
-"""Local trigger server — phone-side button via iOS Shortcut.
+"""Local trigger server — phone-side button via iOS Shortcut + G2 renderer bridge.
 
 POST /recall  {"name": "..."}  → recall() + notify()
 POST /tick                     → force one ambient tick
+POST /push    {"text": "..."}  → fan out to G2 renderer subscribers
+GET  /events                   → SSE stream consumed by g2-renderer
 GET  /health                   → sanity
 
 Run:
     cd ~/projects/agihouse
     uv run --with anthropic --with fastapi --with uvicorn python trigger_server.py
+
+Bind to LAN so the phone-side Even Hub companion app can reach /events:
+    AGIHOUSE_TRIGGER_HOST=0.0.0.0 uv run ... python trigger_server.py
 """
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import json
 import os
 import sys
 from pathlib import Path
@@ -29,16 +37,31 @@ from output import notify  # noqa: E402
 from recall import recall  # noqa: E402
 
 from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import StreamingResponse  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Cached service dicts — populated on startup.
 _state: dict = {"gmail_services": None, "cal_services": None, "auth_error": None}
 
+# In-memory fanout for the G2 renderer. Each subscriber owns an asyncio.Queue.
+_subscribers: list[asyncio.Queue[str]] = []
+
 
 class RecallBody(BaseModel):
     name: str
+
+
+class PushBody(BaseModel):
+    text: str
 
 
 @app.on_event("startup")
@@ -93,8 +116,41 @@ def tick_endpoint() -> dict:
     return {"ok": True}
 
 
+@app.post("/push")
+async def push_endpoint(body: PushBody) -> dict:
+    payload = json.dumps({"text": body.text})
+    dropped = 0
+    for q in list(_subscribers):
+        try:
+            q.put_nowait(payload)
+        except asyncio.QueueFull:
+            dropped += 1
+    return {"ok": True, "subscribers": len(_subscribers), "dropped": dropped}
+
+
+@app.get("/events")
+async def events_endpoint() -> StreamingResponse:
+    async def stream():
+        q: asyncio.Queue[str] = asyncio.Queue(maxsize=64)
+        _subscribers.append(q)
+        try:
+            yield ": connected\n\n"
+            while True:
+                try:
+                    payload = await asyncio.wait_for(q.get(), timeout=15.0)
+                    yield f"data: {payload}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
+        finally:
+            with contextlib.suppress(ValueError):
+                _subscribers.remove(q)
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
+
+
 if __name__ == "__main__":
     import uvicorn
 
+    host = os.environ.get("AGIHOUSE_TRIGGER_HOST", "127.0.0.1")
     port = int(os.environ.get("AGIHOUSE_TRIGGER_PORT", "9876"))
-    uvicorn.run(app, host="127.0.0.1", port=port)
+    uvicorn.run(app, host=host, port=port)
