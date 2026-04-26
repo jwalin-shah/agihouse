@@ -13,6 +13,16 @@
 
     .panel { background: #111; border: 1px solid #222; border-radius: 8px; padding: 16px; }
     .panel h2 { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px; }
+    .topbar { max-width: 1100px; margin-bottom: 16px; }
+    .backend-row { display: grid; grid-template-columns: 1fr 92px 100px; gap: 8px; align-items: center; }
+    .status-pill {
+      display: inline-flex; align-items: center; justify-content: center; min-height: 31px;
+      border: 1px solid #333; border-radius: 4px; color: #888; font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .status-pill.ok { border-color: #3CFA4455; color: #3CFA44; background: #102010; }
+    .status-pill.bad { border-color: #ff555555; color: #ff7777; background: #201010; }
+    .hint { color: #555; font-size: 11px; line-height: 1.5; margin-top: 10px; }
 
     .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     button {
@@ -85,6 +95,18 @@
 <body>
   <h1>G2 Ambient Copilot — Demo Control</h1>
   <p class="subtitle">Inject signals into the blackboard. Arbitrator decides what surfaces on the HUD.</p>
+
+  <div class="panel topbar">
+    <h2>Backend</h2>
+    <div class="backend-row">
+      <input id="backend-url" value="http://localhost:9849" />
+      <button onclick="saveBackend()">Connect</button>
+      <span id="server-status" class="status-pill">checking</span>
+    </div>
+    <div class="hint" id="backend-hint">
+      Laptop simulator: http://localhost:9849 · Phone WiFi: http://192.168.2.232:9849 · ngrok: https://your-id.ngrok.app
+    </div>
+  </div>
 
   <div class="layout">
 
@@ -191,7 +213,63 @@
   </div>
 
   <script>
-    const INBOX = 'http://localhost:9849'
+    let INBOX = localStorage.getItem('g2.demo.backend') || 'http://localhost:9849'
+    let previewSocket = null
+
+    document.getElementById('backend-url').value = INBOX
+
+    function apiBase() {
+      return INBOX.replace(/\/$/, '')
+    }
+
+    function wsUrl() {
+      return apiBase().replace(/^https:/, 'wss:').replace(/^http:/, 'ws:') + '/g2/ws'
+    }
+
+    function saveBackend() {
+      const next = document.getElementById('backend-url').value.trim().replace(/\/$/, '')
+      if (!next) return
+      INBOX = next
+      localStorage.setItem('g2.demo.backend', INBOX)
+      connectPreviewSocket()
+      poll()
+    }
+
+    function setServerStatus(ok, label) {
+      const el = document.getElementById('server-status')
+      el.textContent = label
+      el.className = 'status-pill ' + (ok ? 'ok' : 'bad')
+    }
+
+    function connectPreviewSocket() {
+      if (previewSocket) {
+        try { previewSocket.close() } catch(e) {}
+      }
+      previewSocket = new WebSocket(wsUrl())
+      previewSocket.onopen = () => setServerStatus(true, 'live')
+      previewSocket.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data)
+          if (msg.type === 'hud') updateHUDPreview(msg.line1 || '', msg.line2 || '')
+          if (msg.type === 'clear') updateHUDPreview('', '')
+        } catch(e) {}
+      }
+      previewSocket.onerror = () => setServerStatus(false, 'offline')
+      previewSocket.onclose = () => {
+        if (document.visibilityState !== 'hidden') {
+          setTimeout(connectPreviewSocket, 3000)
+        }
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;')
+    }
 
     // Pre-defined scenarios
     const SCENARIOS = {
@@ -286,7 +364,7 @@
     // HTTP helpers
     async function post(path, body) {
       try {
-        await fetch(INBOX + path, {
+        await fetch(apiBase() + path, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
@@ -316,7 +394,11 @@
 
     async function poll() {
       try {
-        const resp = await fetch(INBOX + '/g2/blackboard')
+        const health = await fetch(apiBase() + '/health')
+        if (!health.ok) throw new Error('health failed')
+        setServerStatus(true, previewSocket?.readyState === WebSocket.OPEN ? 'live' : 'api ok')
+
+        const resp = await fetch(apiBase() + '/g2/blackboard')
         const data = await resp.json()
 
         // Stats
@@ -343,21 +425,22 @@
         } else {
           feed.innerHTML = data.signals.map(s => {
             const ttl = Math.round(s.ttl_remaining)
-            const dataStr = JSON.stringify(s.data).slice(0, 60)
+            const dataStr = escapeHtml(JSON.stringify(s.data).slice(0, 60))
             return `<div class="signal-row ${s.shown ? 'shown' : ''}">
-              <span class="agent">${s.agent_id}</span>
-              <span class="prio">${s.priority}</span>
+              <span class="agent">${escapeHtml(s.agent_id)}</span>
+              <span class="prio">${escapeHtml(s.priority)}</span>
               <span class="sig-data">${dataStr}</span>
-              <span class="ttl">${ttl}s</span>
+              <span class="ttl">${escapeHtml(ttl)}s</span>
             </div>`
           }).join('')
         }
 
       } catch(e) {
-        // server not yet up
+        setServerStatus(false, 'offline')
       }
     }
 
+    connectPreviewSocket()
     setInterval(poll, 2000)
     poll()
   </script>

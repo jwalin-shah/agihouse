@@ -4260,4 +4260,5 @@ if __name__ == "__main__":
     import uvicorn
 
     port = int(os.environ.get("INBOX_SERVER_PORT", PORT))
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")
+    host = os.environ.get("INBOX_SERVER_HOST", "127.0.0.1")
+    uvicorn.run(app, host=host, port=port, log_level="info")

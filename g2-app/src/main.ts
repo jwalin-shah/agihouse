@@ -8,9 +8,16 @@ import { setBridge, initHUD, showHUD, clearHUD } from './hud'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-// Set VITE_INBOX_WS_URL in .env.local to your laptop's ngrok/IP
-// e.g. VITE_INBOX_WS_URL=ws://192.168.1.50:9849/g2/ws
-const WS_URL = import.meta.env.VITE_INBOX_WS_URL ?? 'ws://localhost:9849/g2/ws'
+// Set VITE_INBOX_WS_URL only when using a tunnel or non-standard backend host.
+// By default, connect back to the same host that served the WebView app.
+function defaultWsUrl() {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const host = window.location.hostname || 'localhost'
+  return `${protocol}//${host}:9849/g2/ws`
+}
+
+const configuredWsUrl = (import.meta.env.VITE_INBOX_WS_URL ?? '').trim()
+const WS_URL = configuredWsUrl || defaultWsUrl()
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
