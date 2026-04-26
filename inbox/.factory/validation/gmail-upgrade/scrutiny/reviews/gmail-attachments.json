@@ -1,0 +1,11 @@
+{
+  "feature": "gmail-attachments",
+  "status": "pass",
+  "reviewer": "code-review",
+  "findings": [
+    "_extract_attachments recursively walks MIME parts, collects filename + attachmentId + size + mimeType + messageId.",
+    "Attachments attached to Msg dataclass as list[dict]; thread rendering shows attachment badges.",
+    "gmail_attachment_download returns bytes via base64 decode of attachments().get response.",
+    "Endpoint GET /messages/gmail/{msg_id}/attachments/{att_id} streams binary with correct Content-Type."
+  ]
+}

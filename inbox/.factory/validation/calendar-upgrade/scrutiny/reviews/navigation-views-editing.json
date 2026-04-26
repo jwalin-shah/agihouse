@@ -1,0 +1,15 @@
+{
+  "feature": "calendar-date-navigation + calendar-views + calendar-event-editing + calendar-multiday-attendees",
+  "status": "pass",
+  "reviewer": "code-review",
+  "findings": [
+    "_calendar_navigate(delta) shifts by day in day/agenda mode and by week in week mode; month wrap handled by timedelta arithmetic.",
+    "_calendar_date_label formats 'Today · Mon, Apr 10, 2026' when viewing today; visual distinction via 'Today' prefix.",
+    "_cycle_calendar_view toggles day/week/agenda via v key; active mode indicator rendered in status bar (📅 Day / 📆 Week / 📋 Agenda).",
+    "Week view computes Monday from weekday() and fetches via calendar_events_range (single call, not 7).",
+    "Agenda view shows 14-day forward window with day separators; today row highlighted in bold cyan with ● prefix.",
+    "Multiday all_day events: rendering walks events with all_day=True and appends them to each day spanned (estart < d < eend).",
+    "_enter_edit_event puts compose input into edit mode; _do_update_event calls client.update_event with field kwargs; Esc cancels via _editing_event = None.",
+    "Attendees rendered in detail pane with status icons ✅/❌/❓/⏳ (accepted/declined/tentative/needsAction)."
+  ]
+}

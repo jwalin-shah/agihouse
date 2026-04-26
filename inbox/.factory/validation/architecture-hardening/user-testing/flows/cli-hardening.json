@@ -1,0 +1,229 @@
+{
+  "groupId": "cli-hardening",
+  "testedAt": "2026-04-10T18:56:24.690474+00:00",
+  "isolation": {
+    "workingDirectory": "/Users/jwalinshah/projects/inbox",
+    "missionDir": "/Users/jwalinshah/.factory/missions/15a2c771-b16e-4777-8cc6-e14e21bcfe28",
+    "scope": "repo + mission evidence/output paths only",
+    "serverLifecycle": "not started/stopped"
+  },
+  "toolsUsed": ["pytest", "rg", "python"],
+  "assertions": [
+    {
+      "id": "VAL-HARD-001",
+      "title": "Service errors are logged, not silently swallowed",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted pytest logging/silent-swallow checks in tests/test_services.py",
+          "expected": "Tests confirm exceptions are logged and silent swallow patterns are absent",
+          "observed": "test_imsg_contacts_logs_exception, test_gmail_send_logs_exception, and test_services_has_no_silent_exception_swallowing passed"
+        },
+        {
+          "action": "Trigger a real service failure via invalid iMessage DB content",
+          "expected": "Service logs a structured error instead of silently swallowing",
+          "observed": "loguru ERROR line emitted: imsg_contacts failed ... sqlite3.DatabaseError: file is not a database"
+        },
+        {
+          "action": "Run rg for except.*pass in services.py",
+          "expected": "No silent pass blocks",
+          "observed": "No matches"
+        }
+      ],
+      "evidence": {
+        "terminalOutputs": [
+          "architecture-hardening/cli-hardening/pytest-services-hardening.txt",
+          "architecture-hardening/cli-hardening/log-trigger-service-error.txt",
+          "architecture-hardening/cli-hardening/rg-hardening-checks.txt"
+        ],
+        "keyResults": "11 targeted services tests passed; explicit ERROR log captured on forced failure"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-HARD-002",
+      "title": "SQLite connections are pooled",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run TestSqliteConnectionManagement::test_notes_list_reuses_cached_connection",
+          "expected": "Sequential calls reuse a cached SQLite connection",
+          "observed": "Test passed with connect_calls == 1 across two notes_list() calls"
+        },
+        {
+          "action": "Run rg sqlite3.connect in services.py",
+          "expected": "Connection creation centralized in connection manager",
+          "observed": "Single connect site found in SQLiteConnectionManager.get_connection"
+        }
+      ],
+      "evidence": {
+        "terminalOutputs": [
+          "architecture-hardening/cli-hardening/pytest-services-hardening.txt",
+          "architecture-hardening/cli-hardening/rg-hardening-checks.txt"
+        ],
+        "keyResults": "Pooling behavior validated by unit test and connect pattern check"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-HARD-003",
+      "title": "Gmail listing uses batch API",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run TestGmailContactsBatching::test_gmail_contacts_batches_metadata_fetches",
+          "expected": "Batch API is used with fewer HTTP calls than contacts",
+          "observed": "Test passed with batch_request_count == 1, standalone_metadata_calls == 0, http_call_count == 2"
+        },
+        {
+          "action": "Run rg new_batch_http_request in services.py",
+          "expected": "Batch API call site exists in Gmail listing path",
+          "observed": "Matches at lines guarding and invoking service.new_batch_http_request(...)"
+        }
+      ],
+      "evidence": {
+        "terminalOutputs": [
+          "architecture-hardening/cli-hardening/pytest-services-hardening.txt",
+          "architecture-hardening/cli-hardening/rg-hardening-checks.txt"
+        ],
+        "keyResults": "Batch metadata fetch path and behavior confirmed"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-HARD-004",
+      "title": "Token refresh uses file locking",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run TestTokenFileLocking tests",
+          "expected": "Token refresh writes are lock-protected and concurrency-safe",
+          "observed": "Both token locking tests passed, including concurrent write JSON integrity check"
+        },
+        {
+          "action": "Run rg flock|_write_text_with_lock in services.py",
+          "expected": "File lock operations wrap token writes",
+          "observed": "fcntl.flock lock/unlock and _write_text_with_lock usage at token write sites found"
+        }
+      ],
+      "evidence": {
+        "terminalOutputs": [
+          "architecture-hardening/cli-hardening/pytest-services-hardening.txt",
+          "architecture-hardening/cli-hardening/rg-hardening-checks.txt"
+        ],
+        "keyResults": "Token write locking implemented and exercised in tests"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-HARD-005",
+      "title": "AppleScript inputs are fully sanitized",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run TestAppleScriptEscaping tests",
+          "expected": "Special chars are escaped and sanitizer is used in AppleScript call paths",
+          "observed": "All three sanitizer/call-site tests passed for quotes, backslashes, braces, newline/tab, and Unicode"
+        },
+        {
+          "action": "Run rg subprocess.*osascript and _escape_applescript/safe_* in services.py",
+          "expected": "AppleScript callsites correlate with sanitized interpolations",
+          "observed": "osascript callsites and sanitizer-backed safe_* interpolations present in iMessage/notes/reminders paths"
+        }
+      ],
+      "evidence": {
+        "terminalOutputs": [
+          "architecture-hardening/cli-hardening/pytest-services-hardening.txt",
+          "architecture-hardening/cli-hardening/rg-hardening-checks.txt"
+        ],
+        "keyResults": "Dedicated sanitizer exists and is verified by unit tests"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-HARD-006",
+      "title": "InboxClient.close() is called on TUI exit",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run test_action_quit_closes_client_once and test_on_unmount_closes_client",
+          "expected": "Client close is called during quit/unmount lifecycle",
+          "observed": "Both tests passed and assert close() called once"
+        },
+        {
+          "action": "Run rg on_unmount|client.close|_client.close across inbox.py and inbox_client.py",
+          "expected": "TUI and client close call path exists",
+          "observed": "inbox.py calls self.client.close() and defines on_unmount; inbox_client.py close() calls self._client.close()"
+        }
+      ],
+      "evidence": {
+        "terminalOutputs": [
+          "architecture-hardening/cli-hardening/pytest-inbox-hardening.txt",
+          "architecture-hardening/cli-hardening/rg-hardening-checks.txt"
+        ],
+        "keyResults": "Shutdown cleanup path validated by tests and code-path grep"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-HARD-007",
+      "title": "Poll interval is configurable",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run poll interval tests in tests/test_inbox_app.py",
+          "expected": "Env override/default/invalid handling and timer usage are validated",
+          "observed": "All selected poll interval tests passed, including _start_polling uses app.POLL_INTERVAL"
+        },
+        {
+          "action": "Run rg INBOX_POLL_INTERVAL|DEFAULT_POLL_INTERVAL|POLL_INTERVAL in inbox.py",
+          "expected": "Configurable poll interval source and use are visible",
+          "observed": "inbox.py reads INBOX_POLL_INTERVAL with default and uses POLL_INTERVAL in set_interval"
+        }
+      ],
+      "evidence": {
+        "terminalOutputs": [
+          "architecture-hardening/cli-hardening/pytest-inbox-hardening.txt",
+          "architecture-hardening/cli-hardening/rg-hardening-checks.txt"
+        ],
+        "keyResults": "Configurable poll interval behavior verified"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-HARD-010",
+      "title": "SQLite database locked graceful handling",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run TestSqliteConnectionManagement::test_locked_sqlite_returns_empty_and_logs_warning",
+          "expected": "Locked DB is handled gracefully with warning and empty result",
+          "observed": "Test passed asserting notes_list() returns [] and warning log text includes database is locked"
+        },
+        {
+          "action": "Run rg database is locked in services.py",
+          "expected": "Locked-database detection path exists",
+          "observed": "Lock detection string checks found in _is_sqlite_locked_error"
+        }
+      ],
+      "evidence": {
+        "terminalOutputs": [
+          "architecture-hardening/cli-hardening/pytest-services-hardening.txt",
+          "architecture-hardening/cli-hardening/rg-hardening-checks.txt"
+        ],
+        "keyResults": "Locked SQLite handling behavior confirmed by unit test"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Contract evidence string rg 'except.*:\\s*$' is over-broad and matches non-silent, correctly-logged except clauses.",
+      "resolved": true,
+      "resolution": "Used targeted pytest assertions plus explicit rg 'except.*pass' and real failure-trigger log evidence to validate non-silent error handling.",
+      "affectedAssertions": ["VAL-HARD-001"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 8 assigned architecture-hardening CLI assertions; all 8 passed using targeted pytest runs plus rg/python code-path and runtime-log evidence."
+}

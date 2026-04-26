@@ -1,0 +1,15 @@
+{
+  "featureId": "notifications-feature",
+  "reviewedAt": "2026-04-10T00:00:00Z",
+  "commitId": "HEAD",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Three-part notifications feature: backend send_notification + config in services.py, server endpoints, TUI bell indicator. Implementation uses osascript fallback (no pyobjc hard dependency), config respects quiet hours, source toggles, and global enable. Bell reactive is correctly updated in _populate on every poll cycle. Notification dedup for calendar events uses _notified_events set. First-poll baseline (prev == -1) correctly prevents false-positive fires on boot.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": null,
+  "summary": "PASS. Reviewed diff for notifications milestone. All three sub-features (backend, config, TUI bell) are correctly implemented, tested, and all validators green."
+}

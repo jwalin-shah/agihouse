@@ -1,0 +1,15 @@
+{
+  "featureId": "fix-stale-github-selection",
+  "reviewedAt": "2026-04-10T22:33:19Z",
+  "commitId": "b889024",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix directly addresses the prior blocking stale-selection failure from `github-tui-tab`: `_populate` now clears `active_notification` when GitHub data is empty or selection disappears, and both mark-read/open-URL actions now verify selection presence before executing. The fix also adds a worker-thread re-check for mark-read and focused regression tests covering empty-data, missing-id, and action-guard paths.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": ".factory/validation/github-tab/scrutiny/reviews/github-tui-tab.json",
+  "summary": "PASS. Reviewed fix transcript skeleton and both diffs (`084f3a2` original feature and `b889024` fix). The stale GitHub selection bug identified in the prior review is adequately fixed with state clearing and action guards, with matching regression tests added."
+}

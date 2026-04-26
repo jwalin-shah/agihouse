@@ -1,0 +1,28 @@
+{
+  "featureId": "github-tui-tab",
+  "reviewedAt": "2026-04-10T22:17:40Z",
+  "commitId": "084f3a2",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The GitHub tab implementation covers the requested UI and actions, but there is a blocking stale-selection bug: after the list becomes empty, actions can still run against a previously selected notification.",
+    "issues": [
+      {
+        "file": "inbox.py",
+        "line": 705,
+        "severity": "blocking",
+        "description": "When the GitHub sidebar renders the empty state (`if not self.github_data`), `active_notification` is not cleared. Action handlers then rely only on `active_notification` (`action_mark_notification_read` at line 1561 and `action_open_notification_url` at line 1627), so a previously selected notification can still be marked/opened even though nothing is selected or visible. Repro: set `active_notification` to an old item, set `github_data=[]`, switch to GitHub tab, then call `action_open_notification_url()`/`action_mark_notification_read()`; both still execute against stale state."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The fullstack-worker skill recommends using `tuistory` for visual TUI verification when available, but this worker session did not invoke `tuistory` and relied on automated tests only.",
+      "evidence": "Transcript skeleton for worker session `ec7106a1-3edb-408f-98dd-b9132c67ef8b` contains skill calls for `mission-worker-base` and `fullstack-worker` but no `tuistory` invocation."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed handoff, transcript skeleton, and commit diff for `github-tui-tab` (084f3a2). Feature is close, but review fails due to stale `active_notification` state allowing read/open actions when the GitHub list is empty."
+}

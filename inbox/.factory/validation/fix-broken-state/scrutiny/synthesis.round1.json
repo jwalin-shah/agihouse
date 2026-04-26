@@ -1,0 +1,65 @@
+{
+  "milestone": "fix-broken-state",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "uv run pytest -x -q",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "uv run pyright",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "uv run ruff check .",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 2,
+    "passed": 1,
+    "failed": 1,
+    "failedFeatures": [
+      "fix-broken-imports-tests"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "fix-broken-imports-tests",
+      "severity": "blocking",
+      "description": "ServerState initializes AmbientService with a no-op on_note callback (`lambda raw, summary: None`), so ambient captures started via `/ambient/start` are not persisted to Obsidian notes."
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "library",
+      "description": "Updated `.factory/library/architecture.md` to reflect flattened services helpers and the current 8-tab keybinding scheme (`Ctrl+1-8`, ambient on `Ctrl+Shift+6`).",
+      "sourceFeature": "fix-lint-typecheck-bindings"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add assignment guidance that TUI-touching features should default to `fullstack-worker` (or explicitly document allowed backend-worker exceptions) to avoid skill-boundary mismatches.",
+      "evidence": "Feature `fix-lint-typecheck-bindings` required substantial `inbox.py` edits while assigned to `backend-worker`; reviewer flagged this mismatch.",
+      "isSystemic": false
+    },
+    {
+      "target": "skills/backend-worker",
+      "suggestion": "Relax the mandatory RED-first test step for fix-only tasks (lint/type/import repairs) by adding an explicit exception path when restoring already-failing suites.",
+      "evidence": "Both reviews for milestone features recorded RED-step deviations/friction for repair-style work.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Change `.factory/services.yaml` default `test` command to always run the full suite instead of skipping audio/llm tests.",
+      "reason": "ambiguous"
+    }
+  ],
+  "previousRound": null
+}

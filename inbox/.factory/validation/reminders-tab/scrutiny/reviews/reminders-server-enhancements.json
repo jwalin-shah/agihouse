@@ -1,0 +1,46 @@
+{
+  "featureId": "reminders-server-enhancements",
+  "reviewedAt": "2026-04-10T19:58:38Z",
+  "commitId": "560be7a",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The feature adds the required endpoints and service/client paths, but there are correctness gaps: edit/delete are not reliably ID-targeted when titles are duplicated, and endpoint lookup is capped to 500 reminders, which can return false 404s. Client method naming also diverges from the feature spec.",
+    "issues": [
+      {
+        "file": "services.py",
+        "line": 1487,
+        "severity": "blocking",
+        "description": "PUT /reminders/{id} resolves by ID in the server, but reminder_edit identifies the target in AppleScript as `first reminder whose name is (...)`. With duplicate reminder titles, the wrong reminder can be edited, so ID-based endpoint semantics are not preserved."
+      },
+      {
+        "file": "services.py",
+        "line": 1524,
+        "severity": "blocking",
+        "description": "DELETE /reminders/{id} ultimately deletes `first reminder whose name is (...)` in AppleScript. Duplicate titles can delete a different reminder than the requested ID."
+      },
+      {
+        "file": "inbox_server.py",
+        "line": 639,
+        "severity": "blocking",
+        "description": "Both new endpoints find target reminders via `reminders_list(..., limit=500)`. If the requested reminder ID is not in the first 500 results, the API incorrectly returns 404 even when the reminder exists."
+      },
+      {
+        "file": "inbox_client.py",
+        "line": 237,
+        "severity": "non_blocking",
+        "description": "Feature spec requires client methods `edit_reminder()` and `delete_reminder()` (features.json:1605), but implementation provides `reminder_edit()` and `reminder_delete()` (and `def edit_reminder`/`def delete_reminder` are absent). Behavior works, but this diverges from the stated contract."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "Architecture library doc is stale on Reminders mutations and still lists only complete/create AppleScript mutations.",
+      "evidence": ".factory/library/architecture.md:151 — 'Reminders complete/create' only, while commit 560be7a adds edit/delete mutations."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed commit 560be7a and transcript for reminders-server-enhancements. The feature is functionally present, but ID fidelity is broken for duplicate reminder titles and endpoint lookup is artificially capped at 500 items, so the review fails with blocking issues."
+}

@@ -1,0 +1,58 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Credentials & tokens (never commit)
+credentials.json
+token.json
+token.json.lock
+tokens/
+github_token.txt
+google_maps_key.txt
+gemini_api_key.txt
+config/inbox.env
+.env
+.env.local
+.envrc
+*.key
+*.secret
+
+# Coverage & test artifacts
+.coverage
+htmlcov/
+
+# OS files
+.DS_Store
+
+# Server logs
+*.log
+
+# llm-tldr cache
+.tldr/
+
+# Claude Code & local MCP memory
+.claude/
+.inbox_memory.sqlite3
+.inbox_scheduler.sqlite3
+
+# Batch auto-generated state (keep inputs, ignore outputs)
+batch/triage-output.tsv
+batch/archive-state.tsv
+batch/logs/
+batch/.batch-state.lock
+
+# Editor/IDE
+.idea/
+.vscode/
+*.swp
+
+# Hook-generated temp files
+CLAUDE.md.new
+.inbox_index.sqlite3

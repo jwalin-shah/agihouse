@@ -1,0 +1,307 @@
+{
+  "groupId": "regression-cross",
+  "testedAt": "2026-04-10T20:41:51.473329+00:00",
+  "isolation": {
+    "serverUrl": "http://127.0.0.1:9849",
+    "port": 9849,
+    "missionDir": "/Users/jwalinshah/.factory/missions/15a2c771-b16e-4777-8cc6-e14e21bcfe28",
+    "dataPrefix": "UTV",
+    "boundaries": [
+      "Used only 127.0.0.1:9849",
+      "Did not stop or restart shared server",
+      "Single tuistory session used",
+      "Mutations limited to UTV-prefixed reminders"
+    ]
+  },
+  "toolsUsed": [
+    "tuistory",
+    "curl"
+  ],
+  "assertionResults": [
+    {
+      "id": "VAL-REM-001",
+      "title": "Reminders tab accessible via keyboard shortcut",
+      "status": "blocked",
+      "steps": [
+        {
+          "action": "Attempt Ctrl+6 (attempts: `press ctrl 6` three times)",
+          "expected": "Active tab switches to Reminders",
+          "observed": "Stayed on All tab each attempt; no tab switch"
+        },
+        {
+          "action": "Fallback click on Reminders tab label",
+          "expected": "Reminders tab opens",
+          "observed": "Reminders tab opened successfully"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/regression-cross/VAL-REM-001-before-ctrl6.txt",
+          "reminders-tab/regression-cross/VAL-REM-001-after-ctrl6.txt",
+          "reminders-tab/regression-cross/VAL-REM-001-after-ctrl6-attempt2.txt",
+          "reminders-tab/regression-cross/VAL-REM-001-after-ctrl6-attempt3.txt",
+          "reminders-tab/regression-cross/VAL-REM-001-fallback-click-reminders.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/regression-cross/VAL-REM-001-before-ctrl6.png",
+          "reminders-tab/regression-cross/VAL-REM-001-after-ctrl6.png",
+          "reminders-tab/regression-cross/VAL-REM-001-after-ctrl6-attempt3.png",
+          "reminders-tab/regression-cross/VAL-REM-001-fallback-click-reminders.png"
+        ],
+        "network": "n/a"
+      },
+      "issues": "tuistory session did not dispatch Ctrl+number shortcuts; keyboard path could not be validated."
+    },
+    {
+      "id": "VAL-REM-005",
+      "title": "Can complete a reminder via keyboard action",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Select `UTV RC2 COMPLETE 1775853171` and trigger complete with `c`",
+          "expected": "Reminder completes and disappears from incomplete list",
+          "observed": "Status briefly showed Completing..., but reminder remained visible after idle"
+        },
+        {
+          "action": "Corroborate via API POST /reminders/318/complete",
+          "expected": "{\"ok\": true}",
+          "observed": "{\"ok\": false}"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/regression-cross/VAL-REM-005-before-complete.txt",
+          "reminders-tab/regression-cross/VAL-REM-005-selected-before.txt",
+          "reminders-tab/regression-cross/VAL-REM-005-after-complete.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/regression-cross/VAL-REM-005-before-complete.png",
+          "reminders-tab/regression-cross/VAL-REM-005-selected-before.png",
+          "reminders-tab/regression-cross/VAL-REM-005-after-complete.png"
+        ],
+        "network": "POST /reminders/318/complete -> 200 {\"ok\": false}",
+        "apiArtifacts": [
+          "reminders-tab/regression-cross/VAL-REM-005-curl-complete.txt"
+        ]
+      },
+      "issues": "Completion endpoint returned false and item did not leave incomplete list."
+    },
+    {
+      "id": "VAL-REM-006",
+      "title": "Can edit a reminder",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Select `UTV RC2 EDIT 1775853171` and press `e`",
+          "expected": "Enter edit mode in compose",
+          "observed": "Edit mode shown with status `Edit title in compose \u2014 Enter to save...`"
+        },
+        {
+          "action": "Append ` UPDATED` and press Enter",
+          "expected": "Title updates in reminder list",
+          "observed": "Title remained unchanged in list"
+        },
+        {
+          "action": "Corroborate via API PUT /reminders/319",
+          "expected": "{\"ok\": true}",
+          "observed": "{\"ok\": false}"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/regression-cross/VAL-REM-006-before-edit.txt",
+          "reminders-tab/regression-cross/VAL-REM-006-edit-mode.txt",
+          "reminders-tab/regression-cross/VAL-REM-006-after-edit.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/regression-cross/VAL-REM-006-before-edit.png",
+          "reminders-tab/regression-cross/VAL-REM-006-edit-mode.png",
+          "reminders-tab/regression-cross/VAL-REM-006-after-edit.png"
+        ],
+        "network": "PUT /reminders/319 -> 200 {\"ok\": false}",
+        "apiArtifacts": [
+          "reminders-tab/regression-cross/VAL-REM-006-curl-edit.txt"
+        ]
+      },
+      "issues": "Edit interaction reaches edit mode but save does not persist changes."
+    },
+    {
+      "id": "VAL-REM-007",
+      "title": "Can delete a reminder",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Select `UTV RC2 DELETE 1775853171` and trigger delete with `d`",
+          "expected": "Reminder removed from list",
+          "observed": "Status briefly showed Deleting..., then reminder remained visible"
+        },
+        {
+          "action": "Corroborate via API DELETE /reminders/320",
+          "expected": "{\"ok\": true}",
+          "observed": "{\"ok\": false}"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/regression-cross/VAL-REM-007-before-delete.txt",
+          "reminders-tab/regression-cross/VAL-REM-007-after-delete.txt",
+          "reminders-tab/regression-cross/VAL-REM-007-after-delete-final.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/regression-cross/VAL-REM-007-before-delete.png",
+          "reminders-tab/regression-cross/VAL-REM-007-after-delete.png",
+          "reminders-tab/regression-cross/VAL-REM-007-after-delete-final.png"
+        ],
+        "network": "DELETE /reminders/320 -> 200 {\"ok\": false}",
+        "apiArtifacts": [
+          "reminders-tab/regression-cross/VAL-REM-007-curl-delete.txt"
+        ]
+      },
+      "issues": "Delete endpoint returned false and reminder remained in UI list."
+    },
+    {
+      "id": "VAL-CROSS-011",
+      "title": "Tab switching preserves state",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Load Gmail thread (`Data Engineer II - AMZ9794525`)",
+          "expected": "Thread content displayed in MessageView",
+          "observed": "Thread content displayed with sender/status context"
+        },
+        {
+          "action": "Attempt Ctrl+4 then Ctrl+3",
+          "expected": "Switch Gmail -> Calendar -> Gmail via keyboard",
+          "observed": "No tab switch; digits `4` and `3` were inserted into compose"
+        },
+        {
+          "action": "Fallback click Calendar then Gmail",
+          "expected": "Return to same Gmail thread content",
+          "observed": "Returned to Gmail list with `Select a conversation`; prior thread view was not preserved"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/regression-cross/VAL-CROSS-011-step1-gmail.txt",
+          "reminders-tab/regression-cross/VAL-CROSS-011-step2-after-ctrl4.txt",
+          "reminders-tab/regression-cross/VAL-CROSS-011-step3-after-ctrl3.txt",
+          "reminders-tab/regression-cross/VAL-CROSS-011-fallback-step2-calendar-click.txt",
+          "reminders-tab/regression-cross/VAL-CROSS-011-fallback-step3-gmail-click.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/regression-cross/VAL-CROSS-011-step1-gmail.png",
+          "reminders-tab/regression-cross/VAL-CROSS-011-step2-after-ctrl4.png",
+          "reminders-tab/regression-cross/VAL-CROSS-011-step3-after-ctrl3.png",
+          "reminders-tab/regression-cross/VAL-CROSS-011-fallback-step2-calendar-click.png",
+          "reminders-tab/regression-cross/VAL-CROSS-011-fallback-step3-gmail-click.png"
+        ],
+        "network": "n/a"
+      },
+      "issues": "Keyboard chord not dispatched in tuistory; fallback tab switch showed Gmail thread state not preserved."
+    },
+    {
+      "id": "VAL-REGR-001",
+      "title": "Notes tab preserved",
+      "status": "blocked",
+      "steps": [
+        {
+          "action": "Attempt Ctrl+5",
+          "expected": "Switch to Notes tab",
+          "observed": "Stayed on Gmail; digit `5` appended to compose input"
+        },
+        {
+          "action": "Fallback click Notes and select `Continuation of Care`",
+          "expected": "Notes list and detail render",
+          "observed": "Notes list rendered and detail body loaded correctly"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/regression-cross/VAL-REGR-001-after-ctrl5-attempt.txt",
+          "reminders-tab/regression-cross/VAL-REGR-001-notes-fallback.txt",
+          "reminders-tab/regression-cross/VAL-REGR-001-notes-selected.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/regression-cross/VAL-REGR-001-after-ctrl5-attempt.png",
+          "reminders-tab/regression-cross/VAL-REGR-001-notes-fallback.png",
+          "reminders-tab/regression-cross/VAL-REGR-001-notes-selected.png"
+        ],
+        "network": "n/a"
+      },
+      "issues": "Ctrl+5 path could not be validated due Ctrl+number dispatch limitation in automation session."
+    },
+    {
+      "id": "VAL-REGR-004",
+      "title": "Account add/re-auth preserved",
+      "status": "blocked",
+      "steps": [
+        {
+          "action": "Press Ctrl+A",
+          "expected": "Status shows opening auth flow",
+          "observed": "Status showed `Opening browser for auth...`"
+        },
+        {
+          "action": "Press Ctrl+Shift+A",
+          "expected": "Status shows re-auth flow (`Re-authing <email>...`)",
+          "observed": "Status again showed `Opening browser for auth...` (same as Ctrl+A)"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/regression-cross/VAL-REGR-004-after-ctrl-a.txt",
+          "reminders-tab/regression-cross/VAL-REGR-004-after-ctrl-shift-a.txt",
+          "reminders-tab/regression-cross/VAL-REGR-004-retry-after-ctrl-shift-a.txt",
+          "reminders-tab/regression-cross/VAL-REGR-004-retry-after-ctrl-a.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/regression-cross/VAL-REGR-004-after-ctrl-a.png",
+          "reminders-tab/regression-cross/VAL-REGR-004-after-ctrl-shift-a.png",
+          "reminders-tab/regression-cross/VAL-REGR-004-retry-after-ctrl-shift-a.png",
+          "reminders-tab/regression-cross/VAL-REGR-004-retry-after-ctrl-a.png"
+        ],
+        "network": "n/a"
+      },
+      "issues": "Could not produce a distinct Ctrl+Shift+A behavior in tuistory/terminal session; observed same status as Ctrl+A."
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Ctrl+number shortcuts did not dispatch in tuistory session; chords inserted digits into compose instead.",
+      "resolved": true,
+      "resolution": "Used tab-click fallbacks for non-shortcut-dependent checks and recorded keyboard-path assertions as blocked where required.",
+      "affectedAssertions": [
+        "VAL-REM-001",
+        "VAL-REGR-001",
+        "VAL-CROSS-011"
+      ]
+    },
+    {
+      "description": "Ctrl+Shift+A could not be distinguished from Ctrl+A in this terminal automation run.",
+      "resolved": false,
+      "resolution": "Captured repeated evidence; re-auth shortcut path remains unverified.",
+      "affectedAssertions": [
+        "VAL-REGR-004"
+      ]
+    },
+    {
+      "description": "Status briefly showed `Server unreachable \u2014 press Ctrl+R to retry` during account-shortcut testing.",
+      "resolved": true,
+      "resolution": "Retried health check on 127.0.0.1:9849; /health returned 200 and testing continued.",
+      "affectedAssertions": [
+        "VAL-REGR-004"
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "description": "Terminal automation could not reliably send distinct Ctrl+number/Ctrl+Shift+A chords in this session.",
+      "affectedAssertions": [
+        "VAL-REM-001",
+        "VAL-REGR-001",
+        "VAL-REGR-004"
+      ],
+      "quickFixAttempted": "Retried chords multiple times and validated with fallback navigation/checks."
+    }
+  ],
+  "summary": "Tested 7 assertions: 4 failed (VAL-REM-005, VAL-REM-006, VAL-REM-007, VAL-CROSS-011), 3 blocked due shortcut-dispatch limitations (VAL-REM-001, VAL-REGR-001, VAL-REGR-004)."
+}

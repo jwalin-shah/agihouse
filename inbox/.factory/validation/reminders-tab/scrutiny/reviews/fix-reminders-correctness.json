@@ -1,0 +1,34 @@
+{
+  "featureId": "fix-reminders-correctness",
+  "reviewedAt": "2026-04-10T20:14:44Z",
+  "commitId": "1da45a1",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The rerun fixes two prior blockers (mutation lookup no longer capped at 500 and filter changes clear stale active reminder state), but the ID-targeting blocker is not fully resolved: reminder mutations still select the first reminder by title/list in AppleScript rather than uniquely targeting by reminder ID.",
+    "issues": [
+      {
+        "file": "services.py",
+        "line": 1436,
+        "severity": "blocking",
+        "description": "Mutation targeting is still not ID-stable. `_applescript_find_reminder()` builds `first reminder whose name is (...) and ... name of container is (...)`, and `reminder_complete`/`reminder_edit`/`reminder_delete` all use that clause. If multiple incomplete reminders share the same title in the same list, AppleScript can mutate the wrong reminder, so ID-based endpoint semantics remain incorrect for duplicate-title reminders."
+      },
+      {
+        "file": "inbox_client.py",
+        "line": 237,
+        "severity": "non_blocking",
+        "description": "The feature contract for this fix includes renaming client methods to `edit_reminder` / `delete_reminder` (`features.json` expectedBehavior), but the client still exposes `reminder_edit` and `reminder_delete` only."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "Architecture shared-state documentation for Reminders mutations is stale relative to current implementation.",
+      "evidence": ".factory/library/architecture.md:33 and :151 still describe Reminders mutations as complete/create only, while implementation includes edit/delete plus `reminder_by_id` lookup and list-name disambiguation logic."
+    }
+  ],
+  "addressesFailureFrom": ".factory/validation/reminders-tab/scrutiny/synthesis.json",
+  "summary": "Reviewed fix-reminders-correctness (commit 1da45a1), including handoff, transcript skeleton, and diff. The 500-cap lookup bug and stale `active_reminder` bug are fixed, but reminder mutation targeting remains ambiguous for same-title duplicates within a list, so one prior blocking correctness issue persists and the fix review fails."
+}

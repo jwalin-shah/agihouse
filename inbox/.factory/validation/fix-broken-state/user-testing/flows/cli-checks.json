@@ -1,0 +1,115 @@
+{
+  "groupId": "cli-checks",
+  "testedAt": "2026-04-10T00:00:00Z",
+  "isolation": {
+    "workingDirectory": "/Users/jwalinshah/projects/inbox",
+    "serverNeeded": false,
+    "toolsUsed": ["uv run pytest", "uv run pyright", "uv run ruff", "uv run python"]
+  },
+  "toolsUsed": ["pytest", "pyright", "ruff", "python"],
+  "assertions": [
+    {
+      "id": "VAL-FIX-001",
+      "title": "All pytest tests pass",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run `uv run pytest -x -q`",
+          "expected": "0 failures, 0 collection errors, all tests pass",
+          "observed": "254 passed in 2.77s, exit code 0. All test files collected and passed successfully including tests/test_audio.py, tests/test_llm.py, and all others."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "terminalOutput": "fix-broken-state/cli-checks/VAL-FIX-001-pytest-output.txt",
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FIX-002",
+      "title": "Pyright reports zero errors",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run `uv run pyright`",
+          "expected": "0 errors across the entire project",
+          "observed": "0 errors, 0 warnings, 0 informations. Exit code 0."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "terminalOutput": "fix-broken-state/cli-checks/VAL-FIX-002-pyright-output.txt",
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FIX-003",
+      "title": "Ruff check reports zero errors",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run `uv run ruff check .`",
+          "expected": "All checks passed! or Found 0 errors",
+          "observed": "All checks passed! Exit code 0."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "terminalOutput": "fix-broken-state/cli-checks/VAL-FIX-003-ruff-output.txt",
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FIX-005",
+      "title": "No broken imports in any source file",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run `uv run python -c \"import services; import inbox_client; import inbox_server; import contacts; import ambient_notes; import ambient_daemon\"`",
+          "expected": "Exit code 0, no ModuleNotFoundError or ImportError",
+          "observed": "All imports successful. Exit code 0. No traceback output."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "terminalOutput": "fix-broken-state/cli-checks/VAL-FIX-005-imports-output.txt",
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FIX-006",
+      "title": "Keybinding scheme updated for 8 tabs",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Inspect BINDINGS list in inbox.py (lines 275-292)",
+          "expected": "Ctrl+1 through Ctrl+8 for all 8 tabs, ambient toggle on non-conflicting binding, no duplicate bindings",
+          "observed": "BINDINGS list contains: ctrl+1 (All), ctrl+2 (iMessage), ctrl+3 (Gmail), ctrl+4 (Calendar), ctrl+5 (Notes), ctrl+6 (Reminders), ctrl+7 (GitHub), ctrl+8 (Drive). Ambient toggle reassigned to ctrl+shift+6 (non-conflicting). All 16 bindings are unique — no two features share the same keybinding."
+        },
+        {
+          "action": "Verify binding uniqueness",
+          "expected": "No duplicate key bindings",
+          "observed": "All bindings verified unique: ctrl+r, ctrl+1-8, ctrl+shift+6, ctrl+a, ctrl+shift+a, ctrl+n, ctrl+d, escape, ctrl+q — 16 distinct bindings with no conflicts."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "terminalOutput": "fix-broken-state/cli-checks/VAL-FIX-006-bindings-inspection.txt",
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 5 assertions: all 5 passed. pytest (254 tests, 0 failures), pyright (0 errors), ruff (all checks passed), imports (all 6 modules import cleanly), and BINDINGS (8 tab shortcuts ctrl+1-8, ambient toggle on ctrl+shift+6, no conflicts)."
+}

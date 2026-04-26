@@ -1,0 +1,293 @@
+{
+  "groupId": "reminders-core",
+  "testedAt": "2026-04-10T20:28:59.029531Z",
+  "isolation": {
+    "serverUrl": "http://127.0.0.1:9849",
+    "port": 9849,
+    "missionDir": "/Users/jwalinshah/.factory/missions/15a2c771-b16e-4777-8cc6-e14e21bcfe28",
+    "dataPrefix": "UTV",
+    "boundaries": [
+      "Did not start or stop server processes",
+      "Used only local API on 127.0.0.1:9849",
+      "Created/modified only UTV-prefixed reminders"
+    ]
+  },
+  "toolsUsed": [
+    "tuistory",
+    "curl"
+  ],
+  "assertionResults": [
+    {
+      "id": "VAL-REM-001",
+      "title": "Reminders tab accessible via keyboard shortcut",
+      "status": "blocked",
+      "reason": "tuistory did not dispatch Ctrl+number shortcuts in this session (known limitation); multiple Ctrl+6 variants did not switch tabs.",
+      "steps": [
+        {
+          "action": "Press Ctrl+6 via tuistory",
+          "expected": "Reminders tab becomes active",
+          "observed": "Stayed on All tab"
+        },
+        {
+          "action": "Retry with alternate chord forms",
+          "expected": "Reminders tab becomes active",
+          "observed": "No tab switch"
+        },
+        {
+          "action": "Click footer 'Reminders' fallback",
+          "expected": "Reminders tab active",
+          "observed": "Switched to Reminders tab"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/reminders-core/VAL-REM-001-active-reminders.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/reminders-core/VAL-REM-001-active-reminders.png"
+        ],
+        "network": "n/a"
+      }
+    },
+    {
+      "id": "VAL-REM-002",
+      "title": "Reminders list displays title, due date, and list name",
+      "status": "pass",
+      "reason": "Reminder rows show title + date text + list name (e.g., 'No date \u00b7 Random').",
+      "steps": [
+        {
+          "action": "Open Reminders tab",
+          "expected": "Reminder rows visible",
+          "observed": "Rows rendered"
+        },
+        {
+          "action": "Inspect reminder row fields",
+          "expected": "title + due date/No date + list",
+          "observed": "All three fields visible"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/reminders-core/VAL-REM-002-list-fields.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/reminders-core/VAL-REM-002-list-fields.png"
+        ],
+        "network": "n/a"
+      }
+    },
+    {
+      "id": "VAL-REM-003",
+      "title": "Can filter reminders by list",
+      "status": "pass",
+      "reason": "List filter cycled to Random and UI showed only Random reminders; API corroboration with list_name parameter returned only Random records.",
+      "steps": [
+        {
+          "action": "Press 'f' to cycle list filters",
+          "expected": "Filter changes list scope",
+          "observed": "Status changed to '2 reminders \u00b7 Random'"
+        },
+        {
+          "action": "Check visible items",
+          "expected": "Only selected list reminders",
+          "observed": "Only Random items shown"
+        },
+        {
+          "action": "GET /reminders?list_name=Random",
+          "expected": "Filtered API response",
+          "observed": "Response contains only list_name=Random"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/reminders-core/VAL-REM-003-filter-random.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/reminders-core/VAL-REM-003-filter-random.png"
+        ],
+        "network": "GET /reminders?list_name=Random&limit=100 -> 200",
+        "apiArtifacts": [
+          "reminders-tab/reminders-core/VAL-REM-003-filter-random-api.json"
+        ]
+      }
+    },
+    {
+      "id": "VAL-REM-004",
+      "title": "Can create a new reminder from compose input",
+      "status": "pass",
+      "reason": "A new UTV reminder created from compose input appeared in Random list; curl POST corroboration returned {\"ok\":true}.",
+      "steps": [
+        {
+          "action": "Type UTV reminder title in compose input and press Enter",
+          "expected": "Reminder created and shown in list",
+          "observed": "UTV RCore Created Via Compose appeared in list"
+        },
+        {
+          "action": "POST /reminders via curl",
+          "expected": "Success response",
+          "observed": "{\"ok\":true}"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/reminders-core/VAL-REM-004-compose-create.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/reminders-core/VAL-REM-004-compose-create.png"
+        ],
+        "network": "POST /reminders -> 200 {\"ok\":true}",
+        "apiArtifacts": [
+          "reminders-tab/reminders-core/VAL-REM-004-curl-post.json"
+        ]
+      }
+    },
+    {
+      "id": "VAL-REM-005",
+      "title": "Can complete a reminder via keyboard action",
+      "status": "blocked",
+      "reason": "Shared server became unreachable during completion attempts; could not confirm POST /reminders/{id}/complete success or disappearance in refreshed data.",
+      "steps": [
+        {
+          "action": "Select UTV completion target and press 'c'",
+          "expected": "Reminder completed and removed",
+          "observed": "No reliable completion confirmation"
+        },
+        {
+          "action": "Refresh and re-check",
+          "expected": "Updated list from server",
+          "observed": "Status showed server unreachable"
+        },
+        {
+          "action": "Retry health endpoint",
+          "expected": "Server recovers",
+          "observed": "Connection refused on all retries"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/reminders-core/VAL-REM-005-before-complete.txt",
+          "reminders-tab/reminders-core/VAL-REM-005-after-complete.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/reminders-core/VAL-REM-005-before-complete.png",
+          "reminders-tab/reminders-core/VAL-REM-005-after-complete.png"
+        ],
+        "network": "GET /health -> connection refused",
+        "apiArtifacts": [
+          "reminders-tab/reminders-core/server-health-failure.txt"
+        ]
+      }
+    },
+    {
+      "id": "VAL-REM-006",
+      "title": "Can edit a reminder",
+      "status": "blocked",
+      "reason": "Blocked by server outage before edit flow could be validated end-to-end.",
+      "steps": [
+        {
+          "action": "Attempt to proceed with reminders interactions",
+          "expected": "Edit flow testable",
+          "observed": "Server unreachable state persisted"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/reminders-core/VAL-REM-005-after-complete.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/reminders-core/VAL-REM-005-after-complete.png"
+        ],
+        "network": "GET /health -> connection refused",
+        "apiArtifacts": [
+          "reminders-tab/reminders-core/server-health-failure.txt"
+        ]
+      }
+    },
+    {
+      "id": "VAL-REM-007",
+      "title": "Can delete a reminder",
+      "status": "blocked",
+      "reason": "Blocked by server outage; unable to validate TUI delete behavior or curl DELETE corroboration.",
+      "steps": [
+        {
+          "action": "Prepare to execute delete flow",
+          "expected": "Reminder deletion succeeds",
+          "observed": "Server unavailable before flow execution"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/reminders-core/VAL-REM-005-after-complete.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/reminders-core/VAL-REM-005-after-complete.png"
+        ],
+        "network": "GET /health -> connection refused",
+        "apiArtifacts": [
+          "reminders-tab/reminders-core/server-health-failure.txt"
+        ]
+      }
+    },
+    {
+      "id": "VAL-REM-008",
+      "title": "Empty state shows helpful message",
+      "status": "pass",
+      "reason": "Filtering to Family Groceries (empty list) showed 'All caught up! \ud83c\udf89' empty-state message.",
+      "steps": [
+        {
+          "action": "Cycle reminder list filter to Family Groceries",
+          "expected": "Zero reminders state",
+          "observed": "Status showed 0 reminders"
+        },
+        {
+          "action": "Inspect list area",
+          "expected": "Helpful empty-state text",
+          "observed": "Displayed 'All caught up! \ud83c\udf89'"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/reminders-core/VAL-REM-008-empty-state.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/reminders-core/VAL-REM-008-empty-state.png"
+        ],
+        "network": "n/a"
+      }
+    }
+  ],
+  "frictions": [
+    {
+      "description": "tuistory did not trigger Ctrl+number shortcuts (Ctrl+6) in this run.",
+      "resolved": true,
+      "resolution": "Used footer click on 'Reminders' to continue other assertion flows and documented keyboard-shortcut assertion as blocked.",
+      "affectedAssertions": [
+        "VAL-REM-001"
+      ]
+    },
+    {
+      "description": "Reminders list viewport temporarily appeared blank after refresh while count still showed items.",
+      "resolved": true,
+      "resolution": "Used tuistory scroll-up to return viewport to visible reminder rows.",
+      "affectedAssertions": [
+        "VAL-REM-005",
+        "VAL-REM-008"
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "description": "Shared API server on 127.0.0.1:9849 became unreachable mid-run.",
+      "affectedAssertions": [
+        "VAL-REM-005",
+        "VAL-REM-006",
+        "VAL-REM-007"
+      ],
+      "quickFixAttempted": "Retried /health multiple times over ~30s and triggered TUI refresh; server remained connection-refused.",
+      "evidence": [
+        "reminders-tab/reminders-core/server-health-failure.txt"
+      ]
+    }
+  ],
+  "summary": "Validated 8 reminders assertions: 4 passed (VAL-REM-002, 003, 004, 008), 4 blocked (VAL-REM-001, 005, 006, 007). Blocked cases were due to tuistory Ctrl+number shortcut dispatch limitation and a mid-run shared server outage."
+}

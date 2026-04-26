@@ -1,0 +1,57 @@
+{
+  "milestone": "reminders-tab",
+  "round": 1,
+  "status": "fail",
+  "assertionsSummary": {
+    "total": 11,
+    "passed": 4,
+    "failed": 4,
+    "blocked": 3
+  },
+  "passedAssertions": [
+    "VAL-REM-002",
+    "VAL-REM-003",
+    "VAL-REM-004",
+    "VAL-REM-008"
+  ],
+  "failedAssertions": [
+    {
+      "id": "VAL-REM-005",
+      "reason": "Completion flow did not persist in tuistory validation run; API corroboration for selected reminder returned {\"ok\": false}."
+    },
+    {
+      "id": "VAL-REM-006",
+      "reason": "Edit flow entered compose edit mode but save did not persist in run; API corroboration for selected reminder returned {\"ok\": false}."
+    },
+    {
+      "id": "VAL-REM-007",
+      "reason": "Delete flow reported transient status but item remained visible; API corroboration for selected reminder returned {\"ok\": false}."
+    },
+    {
+      "id": "VAL-CROSS-011",
+      "reason": "After switching away from Gmail and back, previous thread context was not preserved (MessageView reset)."
+    }
+  ],
+  "blockedAssertions": [
+    {
+      "id": "VAL-REM-001",
+      "blockedBy": "tuistory session did not reliably dispatch Ctrl+6 keyboard chord."
+    },
+    {
+      "id": "VAL-REGR-001",
+      "blockedBy": "tuistory session did not reliably dispatch Ctrl+5 keyboard chord for Notes shortcut verification."
+    },
+    {
+      "id": "VAL-REGR-004",
+      "blockedBy": "tuistory could not reliably distinguish Ctrl+Shift+A from Ctrl+A in this run."
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added tuistory chord-dispatch caveat for Ctrl+Shift+key behavior and reminder-mutation corroboration guidance to use unique titles with fresh IDs.",
+      "source": "flow-report"
+    }
+  ],
+  "previousRound": null
+}

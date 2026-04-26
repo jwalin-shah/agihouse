@@ -1,0 +1,33 @@
+inbox-mcp.example.com {
+    encode gzip
+
+    @health path /health
+    handle @health {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    handle /mcp* {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    handle {
+        respond "Not found" 404
+    }
+}
+
+inbox-mcp-readonly.example.com {
+    encode gzip
+
+    @health path /health
+    handle @health {
+        reverse_proxy 127.0.0.1:8001
+    }
+
+    handle /mcp* {
+        reverse_proxy 127.0.0.1:8001
+    }
+
+    handle {
+        respond "Not found" 404
+    }
+}

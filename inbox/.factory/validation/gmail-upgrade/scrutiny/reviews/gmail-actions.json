@@ -1,0 +1,12 @@
+{
+  "feature": "gmail-action-endpoints + gmail-tui-actions",
+  "status": "pass",
+  "reviewer": "code-review",
+  "findings": [
+    "Six action service functions (archive/delete/star/unstar/mark_read/mark_unread) consistently route through users().messages().modify() or .trash() with proper label manipulation.",
+    "_get_gmail_service helper resolves the right account service for a given msg_id via contact lookup.",
+    "Server endpoints follow POST /messages/gmail/{id}/{action} pattern; returns {ok: true/false}.",
+    "TUI key bindings are context-scoped to the Gmail tab (only fire when Gmail tab active).",
+    "Optimistic UI update on action then background confirmation — consistent with send flow."
+  ]
+}

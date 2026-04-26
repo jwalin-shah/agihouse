@@ -1,0 +1,53 @@
+node_modules/
+harness/
+skills/
+docs/
+.DS_Store
+.claude-plugin/
+.github/
+
+# Python
+__pycache__/
+*.py[oc]
+.venv/
+*.egg-info/
+build/
+dist/
+
+# Credentials & secrets
+credentials.json
+token.json
+token.json.lock
+tokens/
+github_token.txt
+google_maps_key.txt
+gemini_api_key.txt
+*.key
+*.secret
+.env
+.env.local
+.envrc
+inbox/config/inbox.env
+
+# SQLite state
+*.sqlite3
+
+# Inbox runtime/cache
+inbox/.tldr/
+inbox/.claude/
+inbox/batch/triage-output.tsv
+inbox/batch/archive-state.tsv
+inbox/batch/logs/
+inbox/batch/.batch-state.lock
+inbox/CLAUDE.md.new
+inbox/.inbox_index.sqlite3
+inbox/.inbox_memory.sqlite3
+inbox/.inbox_scheduler.sqlite3
+
+# Logs
+*.log
+
+# Editor/IDE
+.idea/
+.vscode/
+*.swp

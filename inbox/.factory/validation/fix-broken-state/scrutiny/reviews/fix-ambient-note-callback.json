@@ -1,0 +1,21 @@
+{
+  "featureId": "fix-ambient-note-callback",
+  "reviewedAt": "2026-04-10T18:05:23Z",
+  "commitId": "683ec9ba90e902c1cf29d84cd8221f91fee9f29f",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix directly addresses the prior blocking regression: `ServerState` now wires `AmbientService.on_note` to `ambient_notes.save_note`, restoring ambient note persistence. Added server tests validate callback wiring and non-no-op behavior.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "services",
+      "observation": "The default `test` command in the shared services registry still skips `tests/test_audio.py` and `tests/test_llm.py`, which can hide regressions now that broken-import fixes are complete and full-suite validation is expected.",
+      "evidence": ".factory/services.yaml:3 sets `test: uv run pytest --ignore=tests/test_audio.py --ignore=tests/test_llm.py -x -q`; handoffs for fix-broken-imports-tests and fix-ambient-note-callback report using full `uv run pytest -x -q`."
+    }
+  ],
+  "addressesFailureFrom": ".factory/validation/fix-broken-state/scrutiny/reviews/fix-broken-imports-tests.json",
+  "summary": "PASS. Reviewed transcript skeleton and both relevant diffs (d1866b3 and 683ec9b). The fix removes the no-op ambient callback identified in the prior failed review and restores persistence via `ambient_notes.save_note`; no blocking code issues found."
+}

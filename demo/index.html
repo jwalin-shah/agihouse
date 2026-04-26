@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>G2 Demo Control Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'SF Mono', 'Fira Code', monospace; background: #0a0a0a; color: #e0e0e0; padding: 20px; }
+    h1 { color: #3CFA44; font-size: 18px; margin-bottom: 4px; letter-spacing: 0.05em; }
+    .subtitle { color: #555; font-size: 12px; margin-bottom: 24px; }
+
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1100px; }
+
+    .panel { background: #111; border: 1px solid #222; border-radius: 8px; padding: 16px; }
+    .panel h2 { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px; }
+
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button {
+      background: #1a1a1a; border: 1px solid #333; border-radius: 6px;
+      color: #e0e0e0; cursor: pointer; font-family: inherit; font-size: 13px;
+      padding: 14px 10px; text-align: left; transition: all 0.15s;
+    }
+    button:hover { background: #222; border-color: #3CFA44; color: #3CFA44; }
+    button:active { background: #3CFA4422; }
+    .btn-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+    .btn-label { font-size: 12px; color: #888; display: block; margin-top: 2px; }
+
+    .danger { border-color: #ff3333; color: #ff5555; }
+    .danger:hover { background: #ff333322; border-color: #ff3333; color: #ff5555; }
+    .play-btn { grid-column: 1 / -1; background: #1a2a1a; border-color: #3CFA44; color: #3CFA44; text-align: center; }
+    .play-btn:hover { background: #2a4a2a; }
+
+    /* Custom signal form */
+    .form-row { display: flex; gap: 8px; margin-top: 10px; }
+    input, select {
+      background: #0d0d0d; border: 1px solid #333; border-radius: 4px;
+      color: #e0e0e0; font-family: inherit; font-size: 12px; padding: 7px 10px;
+    }
+    input { flex: 1; }
+    .form-send { background: #1a1a2a; border-color: #6666ff; color: #aaaaff; }
+    .form-send:hover { background: #2a2a4a; }
+
+    /* Blackboard live feed */
+    .blackboard { height: 320px; overflow-y: auto; font-size: 11px; }
+    .signal-row {
+      border-bottom: 1px solid #1a1a1a; padding: 8px 0; display: grid;
+      grid-template-columns: 80px 30px 1fr 50px; gap: 8px; align-items: center;
+    }
+    .signal-row:last-child { border-bottom: none; }
+    .agent { color: #3CFA44; }
+    .prio { color: #ffaa00; font-weight: bold; text-align: center; }
+    .sig-data { color: #ccc; }
+    .ttl { color: #555; text-align: right; }
+    .shown { opacity: 0.4; }
+
+    /* Stats bar */
+    .stats { display: flex; gap: 24px; padding: 10px 0; border-top: 1px solid #222; margin-top: 10px; font-size: 12px; }
+    .stat { color: #888; }
+    .stat span { color: #3CFA44; font-weight: bold; }
+
+    /* Reasoning box */
+    .reasoning {
+      background: #0d0d0d; border: 1px solid #222; border-radius: 4px;
+      color: #888; font-size: 11px; min-height: 40px; padding: 8px 10px;
+      margin-top: 8px; line-height: 1.5;
+    }
+    .reasoning.active { color: #ccc; border-color: #3CFA4455; }
+
+    /* HUD simulator preview */
+    .hud-preview {
+      background: #000; border: 2px solid #3CFA44; border-radius: 6px;
+      height: 100px; padding: 16px; position: relative; overflow: hidden;
+    }
+    .hud-line1 { color: #3CFA44; font-size: 16px; font-weight: bold; letter-spacing: 0.03em; }
+    .hud-line2 { color: #3CFA4488; font-size: 13px; margin-top: 8px; }
+    .hud-empty { color: #222; font-size: 12px; }
+
+    .attention-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px;
+      background: #1a2a1a; color: #3CFA44; border: 1px solid #3CFA4444; margin-top: 8px;
+    }
+    .attention-badge.focused { background: #2a1a1a; color: #ff8844; border-color: #ff884444; }
+  </style>
+</head>
+<body>
+  <h1>G2 Ambient Copilot — Demo Control</h1>
+  <p class="subtitle">Inject signals into the blackboard. Arbitrator decides what surfaces on the HUD.</p>
+
+  <div class="layout">
+
+    <!-- LEFT: Scenario buttons -->
+    <div>
+      <div class="panel">
+        <h2>Scenarios</h2>
+        <div class="btn-grid" id="scenarios">
+          <button onclick="fire('meeting5')">
+            <span class="btn-icon">📅</span>
+            Meeting in 5 min
+            <span class="btn-label">priority 7 · calendar</span>
+          </button>
+          <button onclick="fire('meeting2')">
+            <span class="btn-icon">🔴</span>
+            Meeting NOW (2 min)
+            <span class="btn-label">priority 9 · calendar</span>
+          </button>
+          <button onclick="fire('actionitem')">
+            <span class="btn-icon">🎙</span>
+            Action Item Captured
+            <span class="btn-label">priority 4 · insight</span>
+          </button>
+          <button onclick="fire('urgentmsg')">
+            <span class="btn-icon">💬</span>
+            Urgent Message
+            <span class="btn-label">priority 7 · message</span>
+          </button>
+          <button onclick="fire('reminder')">
+            <span class="btn-icon">⏰</span>
+            Reminder Due Soon
+            <span class="btn-label">priority 6 · reminder</span>
+          </button>
+          <button onclick="fire('morning')">
+            <span class="btn-icon">🌅</span>
+            Morning Startup
+            <span class="btn-label">priority 5 · system</span>
+          </button>
+          <button onclick="fire('silence')">
+            <span class="btn-icon">🤫</span>
+            Low Noise Signal
+            <span class="btn-label">priority 1 · should suppress</span>
+          </button>
+          <button onclick="fire('compete')">
+            <span class="btn-icon">⚡</span>
+            Two Signals Compete
+            <span class="btn-label">arbitrator chooses</span>
+          </button>
+          <button class="play-btn" onclick="playTimeline()">
+            ▶ &nbsp; Play 60s Timeline (auto-narrated)
+          </button>
+        </div>
+
+        <!-- Custom signal -->
+        <div style="margin-top: 16px;">
+          <h2>Custom Signal</h2>
+          <div class="form-row">
+            <input id="custom-line1" placeholder="line1 (max 28 chars)" maxlength="28" />
+            <input id="custom-line2" placeholder="line2" maxlength="28" />
+            <select id="custom-prio">
+              <option value="9">p9 urgent</option>
+              <option value="7">p7 high</option>
+              <option value="5" selected>p5 medium</option>
+              <option value="3">p3 low</option>
+              <option value="1">p1 noise</option>
+            </select>
+            <button class="form-send" onclick="fireCustom()">SEND</button>
+          </div>
+          <div class="form-row" style="margin-top: 8px;">
+            <button style="flex:1" onclick="directPush()">⚡ Direct HUD Push (bypass arbitrator)</button>
+            <button class="danger" style="flex:0 0 80px" onclick="clearHUD()">CLEAR</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Live blackboard + HUD preview -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+
+      <!-- HUD preview -->
+      <div class="panel">
+        <h2>HUD Preview &nbsp;<span id="attention-badge" class="attention-badge">ambient</span></h2>
+        <div class="hud-preview">
+          <div id="hud-line1" class="hud-empty">— blank —</div>
+          <div id="hud-line2" class="hud-line2" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- Blackboard live feed -->
+      <div class="panel" style="flex:1">
+        <h2>Blackboard Live</h2>
+        <div class="blackboard" id="blackboard-feed">
+          <div style="color:#333; font-size:11px; padding: 8px 0;">Waiting for signals…</div>
+        </div>
+        <div class="stats">
+          <div class="stat">Evaluated <span id="stat-eval">0</span></div>
+          <div class="stat">Shown <span id="stat-shown">0</span></div>
+          <div class="stat">Suppressed <span id="stat-sup">0</span></div>
+        </div>
+        <div class="reasoning" id="reasoning">Arbitrator reasoning will appear here…</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const INBOX = 'http://localhost:9849'
+
+    // Pre-defined scenarios
+    const SCENARIOS = {
+      meeting5: {
+        agent_id: 'calendar', priority: 7, category: 'meeting', ttl: 300,
+        data: { title: '● STANDUP IN 5 MIN', minutes_away: 5, attendees: 'Sarah, Jake +2' }
+      },
+      meeting2: {
+        agent_id: 'calendar', priority: 9, category: 'meeting', ttl: 120,
+        data: { title: '● STANDUP NOW', minutes_away: 2, attendees: 'Sarah, Jake +2' }
+      },
+      actionitem: {
+        agent_id: 'transcript', priority: 4, category: 'insight', ttl: 90,
+        data: { insight: '◆ Send deck before standup' }
+      },
+      urgentmsg: {
+        agent_id: 'messages', priority: 7, category: 'message', ttl: 120,
+        data: { from: 'Sarah Chen', preview: 'urgent — can you call?' }
+      },
+      reminder: {
+        agent_id: 'reminders', priority: 6, category: 'reminder', ttl: 60,
+        data: { title: '▶ Submit expense report', label: 'DUE 10m' }
+      },
+      morning: {
+        agent_id: 'context', priority: 5, category: 'system', ttl: 300,
+        data: { message: 'Morning brief ready', label: '○ GOOD MORNING' }
+      },
+      silence: {
+        agent_id: 'transcript', priority: 1, category: 'insight', ttl: 60,
+        data: { insight: 'Someone mentioned coffee' }
+      },
+      compete: null  // special: fires two at once
+    }
+
+    async function fire(key) {
+      if (key === 'compete') {
+        // Fire two signals simultaneously to show arbitrator choosing
+        await post('/g2/signal', SCENARIOS.meeting5)
+        await post('/g2/signal', SCENARIOS.actionitem)
+        return
+      }
+      await post('/g2/signal', SCENARIOS[key])
+    }
+
+    async function fireCustom() {
+      const line1 = document.getElementById('custom-line1').value.trim()
+      const line2 = document.getElementById('custom-line2').value.trim()
+      const prio  = parseInt(document.getElementById('custom-prio').value)
+      if (!line1) return
+      await post('/g2/signal', {
+        agent_id: 'demo',
+        priority: prio,
+        category: 'system',
+        ttl: 120,
+        data: { title: line1, detail: line2 }
+      })
+    }
+
+    async function directPush() {
+      const line1 = document.getElementById('custom-line1').value.trim()
+      const line2 = document.getElementById('custom-line2').value.trim()
+      if (!line1) return
+      await post('/g2/hud', { line1, line2 })
+      updateHUDPreview(line1, line2)
+    }
+
+    async function clearHUD() {
+      await post('/g2/clear', {})
+      updateHUDPreview('', '')
+    }
+
+    // 60-second scripted timeline
+    async function playTimeline() {
+      const steps = [
+        { delay: 0,    action: () => fire('morning'),    label: 'Glasses on → morning brief' },
+        { delay: 5000, action: () => fire('silence'),    label: 'Low-noise signal → should suppress' },
+        { delay: 10000,action: () => fire('meeting5'),   label: 'Meeting in 5 min appears' },
+        { delay: 18000,action: () => fire('actionitem'), label: 'Ambient: action item captured' },
+        { delay: 26000,action: () => fire('compete'),    label: '⚡ Two signals compete — arbitrator decides' },
+        { delay: 36000,action: () => fire('meeting2'),   label: 'Meeting in 2 min → priority 9' },
+        { delay: 44000,action: () => post('/g2/clear',{}), label: 'Meeting started → signals expire' },
+        { delay: 52000,action: () => fire('urgentmsg'),  label: 'Urgent message surfaces' },
+        { delay: 62000,action: () => post('/g2/clear',{}), label: 'Timeline complete' },
+      ]
+      for (const step of steps) {
+        await new Promise(r => setTimeout(r, step.delay === 0 ? 0 : step.delay - (steps[steps.indexOf(step)-1]?.delay ?? 0)))
+        step.action()
+        console.log(`[timeline] ${step.label}`)
+      }
+    }
+
+    // HTTP helpers
+    async function post(path, body) {
+      try {
+        await fetch(INBOX + path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+      } catch(e) {
+        console.warn('post failed:', e)
+      }
+    }
+
+    // Poll blackboard every 2s
+    function updateHUDPreview(line1, line2) {
+      const l1 = document.getElementById('hud-line1')
+      const l2 = document.getElementById('hud-line2')
+      if (line1) {
+        l1.textContent = line1
+        l1.className = 'hud-line1'
+        l2.textContent = line2
+        l2.style.display = line2 ? 'block' : 'none'
+      } else {
+        l1.textContent = '— blank —'
+        l1.className = 'hud-empty'
+        l2.style.display = 'none'
+      }
+    }
+
+    let lastShownLine1 = ''
+
+    async function poll() {
+      try {
+        const resp = await fetch(INBOX + '/g2/blackboard')
+        const data = await resp.json()
+
+        // Stats
+        document.getElementById('stat-eval').textContent = data.stats.evaluated
+        document.getElementById('stat-shown').textContent = data.stats.shown
+        document.getElementById('stat-sup').textContent = data.stats.suppressed
+
+        // Reasoning
+        const r = document.getElementById('reasoning')
+        if (data.last_reasoning) {
+          r.textContent = '→ ' + data.last_reasoning
+          r.className = 'reasoning active'
+        }
+
+        // Attention badge
+        const badge = document.getElementById('attention-badge')
+        badge.textContent = data.attention_state
+        badge.className = 'attention-badge' + (data.attention_state === 'focused' ? ' focused' : '')
+
+        // Blackboard feed
+        const feed = document.getElementById('blackboard-feed')
+        if (data.signals.length === 0) {
+          feed.innerHTML = '<div style="color:#333;font-size:11px;padding:8px 0">No active signals</div>'
+        } else {
+          feed.innerHTML = data.signals.map(s => {
+            const ttl = Math.round(s.ttl_remaining)
+            const dataStr = JSON.stringify(s.data).slice(0, 60)
+            return `<div class="signal-row ${s.shown ? 'shown' : ''}">
+              <span class="agent">${s.agent_id}</span>
+              <span class="prio">${s.priority}</span>
+              <span class="sig-data">${dataStr}</span>
+              <span class="ttl">${ttl}s</span>
+            </div>`
+          }).join('')
+        }
+
+      } catch(e) {
+        // server not yet up
+      }
+    }
+
+    setInterval(poll, 2000)
+    poll()
+  </script>
+</body>
+</html>

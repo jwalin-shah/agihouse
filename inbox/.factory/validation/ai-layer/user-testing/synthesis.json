@@ -1,0 +1,36 @@
+{
+  "milestone": "ai-layer",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-AI-001: GET /llm/status returns both small and large model status fields",
+    "VAL-AI-002: POST /autocomplete returns completion or null (existing endpoint preserved)",
+    "VAL-AI-003: POST /ai/briefing returns events, pending_reminders, unread_counts, summary fields",
+    "VAL-AI-004: POST /ai/triage returns {id: priority} mapping for conversations",
+    "VAL-AI-005: POST /ai/summarize returns summary, key_points, action_items, decisions for 5+ msg threads",
+    "VAL-AI-006: POST /ai/summarize returns skipped:true for threads with <5 messages",
+    "VAL-AI-007: POST /ai/extract-actions returns actions list with text, deadline, type fields",
+    "VAL-AI-008: TUI Ctrl+B triggers morning briefing fetch and shows loading status",
+    "VAL-AI-009: BriefingModal renders events and pending reminders and dismisses on Escape",
+    "VAL-AI-010: ConversationItem renders priority indicators (red for urgent, blue for low, none for normal)",
+    "VAL-AI-011: MessageView renders AI summary banner when ai_summary is set on 5+ msg Gmail threads",
+    "VAL-AI-012: All 576 tests pass including 53 new AI layer tests; ruff and pyright clean"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [],
+  "notes": [
+    "Large model (3-4B) is never loaded in tests — all large-model paths are mocked via patch.object.",
+    "Triage worker is fire-and-forget; test checks crash-free execution not specific priority assignment.",
+    "Server briefing endpoint wraps each data source in try/except so partial failures degrade gracefully.",
+    "LLM infrastructure extended: _ensure_large_llm_loaded returns bool; llm_large_complete returns None when unavailable.",
+    "Summarization only triggers for Gmail threads with 5+ messages; shorter threads return skipped:true.",
+    "Action extraction falls back from large model to small model automatically."
+  ]
+}

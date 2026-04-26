@@ -1,0 +1,30 @@
+{
+  "milestone": "fix-broken-state",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-FIX-001",
+    "VAL-FIX-002",
+    "VAL-FIX-003",
+    "VAL-FIX-004",
+    "VAL-FIX-005",
+    "VAL-FIX-006",
+    "VAL-PERF-001"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added Flow Validator Guidance sections for CLI and curl surfaces",
+      "source": "setup"
+    }
+  ],
+  "previousRound": null
+}

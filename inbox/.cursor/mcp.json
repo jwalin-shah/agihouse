@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "inbox": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "inbox_mcp_stdio.py"
+      ],
+      "env": {
+        "INBOX_SERVER_URL": "http://127.0.0.1:9849",
+        "INBOX_SERVER_TOKEN": "${INBOX_SERVER_TOKEN}"
+      }
+    },
+    "inbox-readonly": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "inbox_mcp_readonly_stdio.py"
+      ],
+      "env": {
+        "INBOX_SERVER_URL": "http://127.0.0.1:9849",
+        "INBOX_SERVER_TOKEN": "${INBOX_SERVER_TOKEN}"
+      }
+    }
+  }
+}

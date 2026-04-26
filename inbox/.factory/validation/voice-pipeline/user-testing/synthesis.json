@@ -1,0 +1,34 @@
+{
+  "milestone": "voice-pipeline",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-VP-001: ambient_available() returns (False, reason) when sounddevice missing",
+    "VAL-VP-002: ambient_available() returns (False, reason) when mlx_whisper missing",
+    "VAL-VP-003: AmbientService.get_transcript() returns rolling buffer capped at TRANSCRIPT_MAXLEN",
+    "VAL-VP-004: GET /ambient/transcript returns segments and count",
+    "VAL-VP-005: GET /ambient/status includes available and reason fields",
+    "VAL-VP-006: GET /dictation/status returns running and available",
+    "VAL-VP-007: GET /voice/config returns config with defaults",
+    "VAL-VP-008: PUT /voice/config partial update preserves unset fields",
+    "VAL-VP-009: load_voice_config merges disk values with defaults",
+    "VAL-VP-010: save_voice_config creates parent dirs and writes JSON",
+    "VAL-VP-011: ambient autostart skipped when ambient_available returns False",
+    "VAL-VP-012: route_voice_command dispatches to registered handlers"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [],
+  "previousRound": null,
+  "notes": [
+    "All ML/audio deps mocked in CI — sounddevice, mlx_whisper, Quartz stubs in conftest.py.",
+    "test_server.py replaces state.ambient with MagicMock; fixtures in test_server_endpoints.py and test_voice_pipeline.py now reset to real AmbientService instances to prevent cross-test contamination.",
+    "Ambient autostart tests mock state.ambient.start() to avoid spawning real capture threads."
+  ]
+}

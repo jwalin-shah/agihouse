@@ -1,0 +1,38 @@
+{
+  "milestone": "fix-broken-state",
+  "round": 2,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "uv run pytest -x -q",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "uv run pyright",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "uv run ruff check .",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [],
+  "rejectedObservations": [
+    {
+      "observation": "The default `test` command in `.factory/services.yaml` skips `tests/test_audio.py` and `tests/test_llm.py`.",
+      "reason": "already-documented"
+    }
+  ],
+  "previousRound": ".factory/validation/fix-broken-state/scrutiny/synthesis.round1.json"
+}

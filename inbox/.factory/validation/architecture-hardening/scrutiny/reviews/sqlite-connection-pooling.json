@@ -1,0 +1,21 @@
+{
+  "featureId": "sqlite-connection-pooling",
+  "reviewedAt": "2026-04-10T18:47:11Z",
+  "commitId": "c92266e25d6502a6a6616f04f127416c288f98a9",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The feature is implemented correctly for architecture-hardening: SQLite reads for iMessage, Notes, and Reminders were migrated to a shared persistent connection manager, lock errors now retry and degrade to empty results with warning logs, and cached connections are closed during FastAPI lifespan shutdown. Tests were added for connection reuse, locked-database handling, cache cleanup, and server shutdown cleanup.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "The architecture library does not yet document the new SQLite connection manager + shutdown cleanup pattern, which is now an important data-access invariant for local SQLite sources.",
+      "evidence": "Implementation exists in services.py:255-317 (SQLiteConnectionManager and _run_sqlite_read) and inbox_server.py:324-340 (lifespan finally close_sqlite_connections), but .factory/library/architecture.md data-layer/invariants sections (e.g., lines 24-33 and 142-155) still describe SQLite access generally without this pooling/cleanup convention."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed feature sqlite-connection-pooling at commit c92266e. Implementation meets the feature description and architecture-hardening goals with no blocking or non-blocking code defects identified; one shared-state knowledge gap was noted for architecture documentation."
+}

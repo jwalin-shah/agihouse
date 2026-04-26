@@ -1,0 +1,10 @@
+{
+  "feature": "gmail-compose-new + gmail-labels",
+  "status": "pass",
+  "reviewer": "code-review",
+  "findings": [
+    "Compose opens modal overlay collecting to/subject/body; POST /messages/compose routes via correct account.",
+    "Labels listed via users().labels().list; returned as list[dict] with id/name/type.",
+    "Label cycling in TUI (l key) iterates through user labels; applies via modify endpoint."
+  ]
+}

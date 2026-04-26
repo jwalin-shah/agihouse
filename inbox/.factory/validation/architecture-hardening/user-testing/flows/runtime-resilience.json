@@ -1,0 +1,189 @@
+{
+  "groupId": "runtime-resilience",
+  "testedAt": "2026-04-10T19:08:09.999918+00:00",
+  "isolation": {
+    "missionDir": "/Users/jwalinshah/.factory/missions/15a2c771-b16e-4777-8cc6-e14e21bcfe28",
+    "repoPath": "/Users/jwalinshah/projects/inbox",
+    "serverPort": 9849,
+    "boundary": "Used only local repo resources, assigned mission evidence path, and port 9849"
+  },
+  "toolsUsed": [
+    "tuistory",
+    "curl"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-HARD-008",
+      "title": "Server unreachable error handling in TUI",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Launch TUI with server healthy",
+          "expected": "TUI loads and remains responsive",
+          "observed": "Loaded successfully before outage (conversation/notes views rendered)."
+        },
+        {
+          "action": "Stop server on port 9849 and trigger refresh (Ctrl+R) from Notes view",
+          "expected": "Status bar shows clear unreachable error and TUI does not crash",
+          "observed": "Screen stopped updating at 12:04:09 with no new unreachable status in this run; subsequent snapshot was identical and process check showed no inbox.py process (app exited)."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "architecture-hardening/runtime-resilience/VAL-HARD-008-server-down-notes-refresh.png",
+          "architecture-hardening/runtime-resilience/VAL-HARD-008-server-down-20s-later.png"
+        ],
+        "terminalSnapshots": [
+          "architecture-hardening/runtime-resilience/VAL-HARD-008-server-down-notes-refresh.txt",
+          "architecture-hardening/runtime-resilience/VAL-HARD-008-server-down-20s-later.txt",
+          "architecture-hardening/runtime-resilience/VAL-HARD-008-process-check-after-outage.txt"
+        ],
+        "network": "Server intentionally stopped: no listener on :9849 during outage"
+      },
+      "issues": "Persistent server outage caused TUI process exit instead of sustained in-app error handling."
+    },
+    {
+      "id": "VAL-HARD-009",
+      "title": "API call failure handling in TUI",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Launch TUI and capture baseline with server running",
+          "expected": "Normal loaded state",
+          "observed": "Loaded with conversation list and normal status text."
+        },
+        {
+          "action": "Trigger refresh, then briefly restart server to induce transient API failure",
+          "expected": "Failed API call shows status error without crashing app",
+          "observed": "Status bar showed exact text: \"Server unreachable \u2014 press Ctrl+R to retry\" while UI stayed rendered."
+        },
+        {
+          "action": "Continue interaction after failure",
+          "expected": "Other app areas remain usable",
+          "observed": "Successfully navigated to Notes tab via click and list rendered (app remained active)."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "architecture-hardening/runtime-resilience/VAL-HARD-009-pre-failure-state.png",
+          "architecture-hardening/runtime-resilience/VAL-HARD-009-after-transient-failure.png",
+          "architecture-hardening/runtime-resilience/VAL-HARD-009-interactive-after-error.png",
+          "architecture-hardening/runtime-resilience/tab-switch-click-notes-check.png"
+        ],
+        "terminalSnapshots": [
+          "architecture-hardening/runtime-resilience/VAL-HARD-009-pre-failure-state.txt",
+          "architecture-hardening/runtime-resilience/VAL-HARD-009-after-transient-failure.txt",
+          "architecture-hardening/runtime-resilience/VAL-HARD-009-interactive-after-error.txt",
+          "architecture-hardening/runtime-resilience/tab-switch-click-notes-check.txt"
+        ],
+        "network": "Transient induced outage on :9849 during refresh; health returned after restart"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERF-002",
+      "title": "Local data load time",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Run timed curl calls against /conversations on running server",
+          "expected": "First /conversations call completes within 3 seconds",
+          "observed": "First run took 6.070614s (HTTP 200), exceeding 3s threshold; later warm runs were faster."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "terminalSnapshots": [
+          "architecture-hardening/runtime-resilience/VAL-PERF-002-curl-timings.txt",
+          "architecture-hardening/runtime-resilience/curl-conversations-baseline.txt"
+        ],
+        "network": "GET /conversations -> HTTP 200 with cold-run latency > 3s"
+      },
+      "issues": "Cold /conversations performance exceeded contract threshold."
+    },
+    {
+      "id": "VAL-REGR-002",
+      "title": "iMessage send and refresh",
+      "status": "blocked",
+      "steps": [
+        {
+          "action": "Inspect available iMessage conversations to identify a safe non-user-impact target",
+          "expected": "Find a dedicated test conversation and send via compose input",
+          "observed": "Sample conversations were real personal/group contacts; no explicit sandbox/test thread was identified."
+        },
+        {
+          "action": "Attempt safe runtime validation",
+          "expected": "Send test iMessage and verify appearance after refresh within 5s",
+          "observed": "Not executed to avoid sending live messages to real contacts without a designated safe target."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "terminalSnapshots": [
+          "architecture-hardening/runtime-resilience/VAL-REGR-002-imessage-conversations-sample.json",
+          "architecture-hardening/runtime-resilience/VAL-REGR-002-imessage-conversations-summary.txt"
+        ],
+        "network": "GET /conversations?source=imessage&limit=10 -> HTTP 200"
+      },
+      "issues": "Blocked by missing clearly safe/sandbox iMessage recipient for live send validation."
+    },
+    {
+      "id": "VAL-REGR-005",
+      "title": "Auto-refresh polling preserved",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Capture baseline TUI snapshot with no manual refresh",
+          "expected": "Initial conversation/unread counts recorded",
+          "observed": "12:06:15 snapshot showed 348 conversations / 281 unread."
+        },
+        {
+          "action": "Wait 20 seconds (> default 10s poll interval) with no input",
+          "expected": "Auto-poll updates data without Ctrl+R",
+          "observed": "12:06:41 snapshot showed 380 conversations / 310 unread, indicating automatic update."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "architecture-hardening/runtime-resilience/VAL-REGR-005-auto-refresh-before.png",
+          "architecture-hardening/runtime-resilience/VAL-REGR-005-auto-refresh-after.png"
+        ],
+        "terminalSnapshots": [
+          "architecture-hardening/runtime-resilience/VAL-REGR-005-auto-refresh-before.txt",
+          "architecture-hardening/runtime-resilience/VAL-REGR-005-auto-refresh-after.txt"
+        ],
+        "network": "No manual refresh action between snapshots"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "tuistory key simulation for Ctrl+number tab shortcuts was unreliable in this session; switched to click-based tab navigation for interaction checks.",
+      "resolved": true,
+      "resolution": "Used `tuistory click \"Notes\" --first` to verify post-error navigability.",
+      "affectedAssertions": [
+        "VAL-HARD-009"
+      ]
+    },
+    {
+      "description": "curl to localhost failed in this environment while 127.0.0.1 on the same port succeeded.",
+      "resolved": true,
+      "resolution": "Used http://127.0.0.1:9849 consistently for curl evidence.",
+      "affectedAssertions": [
+        "VAL-PERF-002",
+        "VAL-REGR-002"
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "description": "No explicitly designated safe/sandbox iMessage destination was available for live send testing.",
+      "affectedAssertions": [
+        "VAL-REGR-002"
+      ],
+      "quickFixAttempted": "Enumerated current iMessage conversation sample via API to locate a non-user-impact target; none was clearly safe."
+    }
+  ],
+  "summary": "Tested 5 assertions: 2 passed (VAL-HARD-009, VAL-REGR-005), 2 failed (VAL-HARD-008, VAL-PERF-002), 1 blocked (VAL-REGR-002)."
+}

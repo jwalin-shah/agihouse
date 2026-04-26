@@ -1,0 +1,46 @@
+{
+  "milestone": "github-tab",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "uv run pytest -x -q",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "uv run pyright",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "uv run ruff check .",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "failedFeatures": [
+      "github-tui-tab"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "github-tui-tab",
+      "severity": "blocking",
+      "description": "GitHub action handlers can operate on a stale `active_notification` after the sidebar becomes empty because the empty-state render path does not clear selection state."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [],
+  "rejectedObservations": [
+    {
+      "observation": "The feature worker did not use tuistory despite fullstack-worker guidance suggesting visual TUI validation.",
+      "reason": "ambiguous"
+    }
+  ],
+  "previousRound": null
+}

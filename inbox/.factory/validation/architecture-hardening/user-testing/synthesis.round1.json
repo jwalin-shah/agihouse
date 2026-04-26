@@ -1,0 +1,52 @@
+{
+  "milestone": "architecture-hardening",
+  "round": 1,
+  "status": "fail",
+  "assertionsSummary": {
+    "total": 13,
+    "passed": 10,
+    "failed": 2,
+    "blocked": 1
+  },
+  "passedAssertions": [
+    "VAL-HARD-001",
+    "VAL-HARD-002",
+    "VAL-HARD-003",
+    "VAL-HARD-004",
+    "VAL-HARD-005",
+    "VAL-HARD-006",
+    "VAL-HARD-007",
+    "VAL-HARD-009",
+    "VAL-HARD-010",
+    "VAL-REGR-005"
+  ],
+  "failedAssertions": [
+    {
+      "id": "VAL-HARD-008",
+      "reason": "During persistent server outage, TUI process exited instead of continuing with a clear in-app unreachable status."
+    },
+    {
+      "id": "VAL-PERF-002",
+      "reason": "Cold GET /conversations took about 6.07s (>3s threshold)."
+    }
+  ],
+  "blockedAssertions": [
+    {
+      "id": "VAL-REGR-002",
+      "blockedBy": "No explicitly designated safe/sandbox iMessage recipient was available for live send validation."
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added CLI surface concurrency classification and Flow Validator Guidance for tuistory boundary/isolation usage.",
+      "source": "setup"
+    },
+    {
+      "target": "user-testing.md",
+      "description": "Documented localhost-to-127.0.0.1 curl fallback and Ctrl+number tuistory shortcut fallback via click navigation.",
+      "source": "flow-report"
+    }
+  ],
+  "previousRound": null
+}

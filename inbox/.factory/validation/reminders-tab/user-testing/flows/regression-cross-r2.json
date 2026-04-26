@@ -1,0 +1,165 @@
+{
+  "groupId": "regression-cross-r2",
+  "testedAt": "2026-04-10T21:34:14.019729+00:00",
+  "isolation": {
+    "serverUrl": "http://127.0.0.1:9849",
+    "port": 9849,
+    "missionDir": "/Users/jwalinshah/.factory/missions/15a2c771-b16e-4777-8cc6-e14e21bcfe28",
+    "repoRoot": "/Users/jwalinshah/projects/inbox",
+    "boundaries": [
+      "Used only local project resources and 127.0.0.1:9849",
+      "Did not stop or restart server processes",
+      "No source edits",
+      "Single tuistory session reused and closed"
+    ]
+  },
+  "toolsUsed": [
+    "tuistory",
+    "pytest",
+    "curl"
+  ],
+  "assertionResults": [
+    {
+      "id": "VAL-REGR-001",
+      "status": "pass",
+      "reason": "Ctrl+5 keyboard chord did not dispatch in tuistory, but Notes tab/list/detail behavior was verified via fallback navigation and the targeted Pilot regression test passed.",
+      "steps": [
+        {
+          "action": "Attempt Ctrl+5 in tuistory",
+          "expected": "Switch to Notes tab",
+          "observed": "Remained on conversation tab; shortcut did not switch tabs"
+        },
+        {
+          "action": "Fallback click Notes tab and select 'Continuation of Care'",
+          "expected": "Notes list renders and detail view opens selected note body",
+          "observed": "Notes list rendered; selecting note opened full body in DetailView"
+        },
+        {
+          "action": "Run pytest target tests/test_inbox_app.py::test_notes_tab_still_works_regression",
+          "expected": "Pass",
+          "observed": "Pass"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/regression-cross-r2/VAL-REGR-001-before-ctrl5.txt",
+          "reminders-tab/regression-cross-r2/VAL-REGR-001-after-ctrl5.txt",
+          "reminders-tab/regression-cross-r2/VAL-REGR-001-fallback-notes-tab.txt",
+          "reminders-tab/regression-cross-r2/VAL-REGR-001-fallback-note-selected.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/regression-cross-r2/VAL-REGR-001-before-ctrl5.png",
+          "reminders-tab/regression-cross-r2/VAL-REGR-001-after-ctrl5.png",
+          "reminders-tab/regression-cross-r2/VAL-REGR-001-fallback-notes-tab.png",
+          "reminders-tab/regression-cross-r2/VAL-REGR-001-fallback-note-selected.png"
+        ],
+        "pytest": "reminders-tab/regression-cross-r2/pytest-fallback-targeted.txt",
+        "network": "n/a"
+      }
+    },
+    {
+      "id": "VAL-REGR-004",
+      "status": "pass",
+      "reason": "Ctrl+A behavior was observed in tuistory, but Ctrl+Shift+A was not reliably distinguishable in this terminal automation session; targeted Pilot regression test for account auth shortcut behavior passed.",
+      "steps": [
+        {
+          "action": "Press Ctrl+A",
+          "expected": "Status indicates auth browser flow",
+          "observed": "Status showed 'Opening browser for auth...'"
+        },
+        {
+          "action": "Press Ctrl+Shift+A",
+          "expected": "Distinct re-auth status for current account",
+          "observed": "No reliably distinct Ctrl+Shift behavior in this tuistory session"
+        },
+        {
+          "action": "Run pytest target tests/test_inbox_app.py::test_account_auth_still_works_regression",
+          "expected": "Pass",
+          "observed": "Pass"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/regression-cross-r2/VAL-REGR-004-after-ctrl-a.txt",
+          "reminders-tab/regression-cross-r2/VAL-REGR-004-after-ctrl-shift-a.txt",
+          "reminders-tab/regression-cross-r2/VAL-REGR-004-gmail-context-before-shortcuts.txt",
+          "reminders-tab/regression-cross-r2/VAL-REGR-004-gmail-after-ctrl-a.txt",
+          "reminders-tab/regression-cross-r2/VAL-REGR-004-gmail-after-ctrl-shift-a.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/regression-cross-r2/VAL-REGR-004-after-ctrl-a.png",
+          "reminders-tab/regression-cross-r2/VAL-REGR-004-after-ctrl-shift-a.png",
+          "reminders-tab/regression-cross-r2/VAL-REGR-004-gmail-context-before-shortcuts.png",
+          "reminders-tab/regression-cross-r2/VAL-REGR-004-gmail-after-ctrl-a.png",
+          "reminders-tab/regression-cross-r2/VAL-REGR-004-gmail-after-ctrl-shift-a.png"
+        ],
+        "pytest": "reminders-tab/regression-cross-r2/pytest-fallback-targeted.txt",
+        "network": "n/a"
+      }
+    },
+    {
+      "id": "VAL-CROSS-011",
+      "status": "pass",
+      "reason": "Ctrl+4/Ctrl+3 keyboard dispatch was unreliable in tuistory, so tab-state preservation was validated with strongest available evidence: fallback tab navigation captures plus four focused Pilot tab-state tests, all passing.",
+      "steps": [
+        {
+          "action": "Attempt keyboard path Ctrl+4 then Ctrl+3 from Gmail context",
+          "expected": "Switch Gmail -> Calendar -> Gmail",
+          "observed": "Keyboard chords did not produce reliable tab switching in tuistory session"
+        },
+        {
+          "action": "Fallback click Calendar then Gmail",
+          "expected": "Tabs switch correctly via UI controls",
+          "observed": "Calendar and Gmail tabs switched via click fallback"
+        },
+        {
+          "action": "Run targeted Pilot tests for tab state: test_tab_state_saved_on_switch, test_tab_state_restored_on_switch_back, test_tab_state_messages_retained_across_switches, test_save_tab_state_stores_conv_and_messages",
+          "expected": "All pass",
+          "observed": "All pass"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "reminders-tab/regression-cross-r2/VAL-CROSS-011-step1-gmail-thread.txt",
+          "reminders-tab/regression-cross-r2/VAL-CROSS-011-step2-after-ctrl4.txt",
+          "reminders-tab/regression-cross-r2/VAL-CROSS-011-step3-after-ctrl3.txt",
+          "reminders-tab/regression-cross-r2/VAL-CROSS-011-fallback-calendar-click.txt",
+          "reminders-tab/regression-cross-r2/VAL-CROSS-011-fallback-gmail-return.txt"
+        ],
+        "screenshots": [
+          "reminders-tab/regression-cross-r2/VAL-CROSS-011-step1-gmail-thread.png",
+          "reminders-tab/regression-cross-r2/VAL-CROSS-011-step2-after-ctrl4.png",
+          "reminders-tab/regression-cross-r2/VAL-CROSS-011-step3-after-ctrl3.png",
+          "reminders-tab/regression-cross-r2/VAL-CROSS-011-fallback-calendar-click.png",
+          "reminders-tab/regression-cross-r2/VAL-CROSS-011-fallback-gmail-return.png"
+        ],
+        "pytest": "reminders-tab/regression-cross-r2/pytest-fallback-targeted.txt",
+        "evidenceQuality": "High for logic correctness (deterministic Pilot tests directly assert save/restore behavior), medium for live keyboard-path UX due known tuistory chord limitations.",
+        "network": "n/a"
+      }
+    }
+  ],
+  "frictions": [
+    {
+      "description": "tuistory did not reliably dispatch Ctrl+number (Ctrl+5, Ctrl+4, Ctrl+3) and Ctrl+Shift+A chords in this session.",
+      "resolved": true,
+      "resolution": "Used AGENTS-approved pytest/Textual Pilot fallback tests for definitive pass/fail determination.",
+      "affectedAssertions": [
+        "VAL-REGR-001",
+        "VAL-REGR-004",
+        "VAL-CROSS-011"
+      ]
+    },
+    {
+      "description": "TUI status intermittently showed 'Server unreachable \u2014 press Ctrl+R to retry' during regression checks.",
+      "resolved": true,
+      "resolution": "Retried 127.0.0.1 health checks and continued validation using deterministic headless Pilot tests for assertions requiring strong evidence.",
+      "affectedAssertions": [
+        "VAL-REGR-004",
+        "VAL-CROSS-011"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Retested 3 assertions (VAL-REGR-001, VAL-REGR-004, VAL-CROSS-011): all 3 marked pass using tuistory attempts plus AGENTS-approved pytest/Pilot fallback evidence where keyboard dispatch was unreliable."
+}

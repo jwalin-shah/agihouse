@@ -1,0 +1,32 @@
+{
+  "milestone": "notifications",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-NOTIF-001: send_notification respects global enabled flag",
+    "VAL-NOTIF-002: send_notification respects per-source disabled toggle",
+    "VAL-NOTIF-003: send_notification respects quiet hours (overnight window)",
+    "VAL-NOTIF-004: send_notification falls back to osascript when pyobjc unavailable",
+    "VAL-NOTIF-005: load_notification_config creates defaults on first use",
+    "VAL-NOTIF-006: config roundtrip via save/load preserves all fields",
+    "VAL-NOTIF-007: POST /notifications/test endpoint returns ok:true when enabled",
+    "VAL-NOTIF-008: PUT /notifications/config persists changes",
+    "VAL-NOTIF-009: Bell indicator shows 0 as empty string, >0 as 🔔 N",
+    "VAL-NOTIF-010: Calendar event dedup prevents double-notification"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [],
+  "previousRound": null,
+  "notes": [
+    "pyobjc UNUserNotificationCenter path works when objc/UserNotifications are installed; osascript fallback handles CI and test environments.",
+    "Bell indicator updates via _populate on every successful poll cycle.",
+    "First-poll baseline (prev_*_unread == -1) prevents false notifications on boot."
+  ]
+}

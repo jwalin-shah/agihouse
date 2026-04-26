@@ -1,0 +1,34 @@
+{
+  "milestone": "global-search",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-GS-001: POST /search returns {query, total, results} shape",
+    "VAL-GS-002: search_all respects source filters (imessage-only, notes-only, etc.)",
+    "VAL-GS-003: search_all enforces limit parameter",
+    "VAL-GS-004: results sorted by timestamp desc (most recent first)",
+    "VAL-GS-005: empty/whitespace query returns total=0 and empty results",
+    "VAL-GS-006: client.search() posts to /search with correct payload",
+    "VAL-GS-007: SearchScreen opens on action_search and closes on Escape",
+    "VAL-GS-008: _on_search_result switches to correct tab for each source"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [],
+  "previousRound": null,
+  "notes": [
+    "All 557 tests pass (34 new tests added vs 523 baseline).",
+    "pyright: 0 errors. ruff: 0 errors.",
+    "Gmail search uses native Gmail API q= parameter for server-side filtering.",
+    "Calendar search uses Google Calendar API q= parameter over ±180 day window.",
+    "iMessage, Notes, Reminders use SQLite LIKE for substring matching.",
+    "Ctrl+\\ binding used for search overlay (Ctrl+/ not available as Textual binding name).",
+    "call_from_thread accessed via self.app in SearchScreen worker due to pyright type limitation."
+  ]
+}

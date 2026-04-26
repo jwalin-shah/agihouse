@@ -1,0 +1,14 @@
+[Unit]
+Description=Inbox private backend
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/Users/jwalinshah/projects/inbox
+EnvironmentFile=/Users/jwalinshah/projects/inbox/config/inbox.env
+ExecStart=/Users/jwalinshah/projects/inbox/scripts/run_inbox_backend.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

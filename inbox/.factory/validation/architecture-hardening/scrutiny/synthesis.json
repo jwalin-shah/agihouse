@@ -1,0 +1,60 @@
+{
+  "milestone": "architecture-hardening",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "uv run pytest -x -q",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "uv run pyright",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "uv run ruff check .",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [
+    {
+      "target": "library",
+      "description": "Added .factory/library/architecture-hardening.md documenting SQLite connection pooling, locked-db retry behavior, and server shutdown cleanup invariants.",
+      "sourceFeature": "sqlite-connection-pooling"
+    },
+    {
+      "target": "library",
+      "description": "Added INBOX_POLL_INTERVAL runtime configuration details and fallback semantics to .factory/library/architecture-hardening.md.",
+      "sourceFeature": "client-cleanup-poll-resilience"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "skills",
+      "suggestion": "Update startup guidance in mission-worker-base/scrutiny-related procedures to run .factory/init.sh via `bash` fallback (or ensure executable bit before direct execution).",
+      "evidence": "Three architecture-hardening feature reviews reported the same setup deviation: direct execution of .factory/init.sh failed with Permission denied, then succeeded via `bash .../.factory/init.sh`.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "services.yaml `test` command excludes audio/llm tests and may hide regressions.",
+      "reason": "already-documented"
+    },
+    {
+      "observation": "Repeated init.sh executable-bit notes from multiple reviews.",
+      "reason": "duplicate"
+    }
+  ],
+  "previousRound": null
+}

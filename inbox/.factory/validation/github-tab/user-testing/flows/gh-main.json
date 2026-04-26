@@ -1,0 +1,99 @@
+{
+  "milestone": "github-tab",
+  "groupId": "gh-main",
+  "surface": "tuistory+curl",
+  "toolsUsed": ["tuistory", "curl", "pytest"],
+  "assertions": [
+    {
+      "id": "VAL-GH-001",
+      "status": "blocked",
+      "reason": "Tuistory did not successfully dispatch Ctrl+7 in this session (known chord limitation), so the keyboard shortcut could not be fully validated through the live surface; tab activation was corroborated via click flow and passing unit test coverage.",
+      "evidence": [
+        "github-tab/gh-main/VAL-GH-001-after-ctrl7-loaded.txt",
+        "github-tab/gh-main/tuistory-github-tab-clicked.png",
+        "github-tab/gh-main/pytest-github-key-open-count-vv.txt"
+      ]
+    },
+    {
+      "id": "VAL-GH-002",
+      "status": "pass",
+      "reason": "GitHub notifications render title, repository, reason, and human-readable timestamp in the list/detail view.",
+      "evidence": [
+        "github-tab/gh-main/VAL-GH-002-notification-fields.txt",
+        "github-tab/gh-main/VAL-GH-002-notification-fields.png"
+      ]
+    },
+    {
+      "id": "VAL-GH-003",
+      "status": "pass",
+      "reason": "PullRequest notifications are visually distinguished with the PR icon (🔀) versus regular notification icon (🔔).",
+      "evidence": [
+        "github-tab/gh-main/VAL-GH-003-pr-vs-checksuite.txt",
+        "github-tab/gh-main/VAL-GH-003-pr-vs-checksuite.png"
+      ]
+    },
+    {
+      "id": "VAL-GH-004",
+      "status": "pass",
+      "reason": "Single-notification mark-read worked from the GitHub tab; selected notification became stale/removed from unread list, and API read endpoint returned success.",
+      "evidence": [
+        "github-tab/gh-main/VAL-GH-006-selected-pr-before-open.txt",
+        "github-tab/gh-main/VAL-GH-004-after-mark-one-read.txt",
+        "github-tab/gh-main/curl-mark-single-read-response.json",
+        "github-tab/gh-main/curl-count-summary.txt"
+      ]
+    },
+    {
+      "id": "VAL-GH-005",
+      "status": "blocked",
+      "reason": "Shift+R keypath could not be conclusively triggered via tuistory in this run (no observable UI transition after multiple attempts). Endpoint behavior and action wiring are corroborated by curl + pytest, but live shortcut dispatch remains unverified.",
+      "evidence": [
+        "github-tab/gh-main/VAL-GH-005-after-shift-r.txt",
+        "github-tab/gh-main/VAL-GH-005-after-type-R.txt",
+        "github-tab/gh-main/curl-mark-all-read-response.json",
+        "github-tab/gh-main/curl-notifications-unread-after-read-all-plus5s.json",
+        "github-tab/gh-main/pytest-github-key-open-count-vv.txt"
+      ]
+    },
+    {
+      "id": "VAL-GH-006",
+      "status": "pass",
+      "reason": "Pressing 'o' on a selected PR notification produced in-app opened-browser feedback, and code/test corroboration confirms webbrowser.open(url) is called with the notification URL.",
+      "evidence": [
+        "github-tab/gh-main/VAL-GH-006-selected-pr-before-open.txt",
+        "github-tab/gh-main/VAL-GH-006-after-open-key.txt",
+        "github-tab/gh-main/code-VAL-GH-006-webbrowser-open.txt",
+        "github-tab/gh-main/pytest-github-key-open-count-vv.txt"
+      ]
+    },
+    {
+      "id": "VAL-GH-007",
+      "status": "pass",
+      "reason": "Unread badge/count was visible as GitHub (50) and updated to no badge with 0 notifications after read-all propagation and refresh.",
+      "evidence": [
+        "github-tab/gh-main/VAL-GH-007-before-read-all-count.txt",
+        "github-tab/gh-main/VAL-GH-008-empty-state.txt",
+        "github-tab/gh-main/curl-count-summary.txt"
+      ]
+    },
+    {
+      "id": "VAL-GH-008",
+      "status": "pass",
+      "reason": "With unread notifications reduced to zero, GitHub tab displayed the expected empty state message ('All clear! 🔔').",
+      "evidence": [
+        "github-tab/gh-main/VAL-GH-008-empty-state.txt",
+        "github-tab/gh-main/VAL-GH-008-empty-state.png",
+        "github-tab/gh-main/curl-notifications-unread-after-read-all-plus5s.json"
+      ]
+    }
+  ],
+  "frictions": [
+    "tuistory did not dispatch Ctrl+7 reliably in this session; used click fallback and pytest corroboration for keyboard binding behavior.",
+    "tuistory could not conclusively trigger Shift+R (mark-all-read) despite repeated attempts; used curl + pytest corroboration.",
+    "GitHub read-all API effect was eventually consistent: unread count remained 50 immediately after POST /read-all, then dropped to 0 after ~5 seconds."
+  ],
+  "blockers": [
+    "VAL-GH-001 and VAL-GH-005 are blocked for full live keyboard-path verification due tuistory key-chord/input limitations in this run."
+  ],
+  "notes": "Validated on localhost/127.0.0.1:9849 only. Tuistory session was closed after evidence capture."
+}

@@ -1,0 +1,26 @@
+{
+  "featureId": "global-search",
+  "reviewedAt": "2026-04-10T00:00:00Z",
+  "commitId": "pending",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Global search implementation covers all three milestones: server endpoint (POST /search), TUI overlay (SearchScreen ModalScreen), and search navigation (jump-to-tab on result select). No blocking issues found.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "search-overlay",
+      "observation": "SearchScreen uses self.app.call_from_thread() instead of self.call_from_thread() due to pyright type stubs not exposing the method on ModalScreen. This is functionally equivalent at runtime.",
+      "evidence": "pyright reports 0 errors with this approach."
+    },
+    {
+      "area": "key-binding",
+      "observation": "Ctrl+/ is not a valid Textual binding name; Ctrl+\\ (ctrl+backslash) is used instead. Documented in library note.",
+      "evidence": "Textual 8.2.3 key binding validation."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Global search milestone implementation is complete. All validators green (557 tests, 0 pyright errors, 0 ruff errors). Services layer, server endpoint, client method, TUI overlay, and navigation are all implemented and tested."
+}

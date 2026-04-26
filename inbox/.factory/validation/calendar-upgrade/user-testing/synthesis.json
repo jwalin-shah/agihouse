@@ -1,0 +1,36 @@
+{
+  "milestone": "calendar-upgrade",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 17,
+    "passed": 17,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-CAL-001", "VAL-CAL-002", "VAL-CAL-003", "VAL-CAL-004",
+    "VAL-CAL-005", "VAL-CAL-006", "VAL-CAL-007", "VAL-CAL-008",
+    "VAL-CAL-009", "VAL-CAL-010", "VAL-CAL-011", "VAL-CAL-012",
+    "VAL-CAL-013", "VAL-CAL-014", "VAL-CAL-015",
+    "VAL-CAL-024", "VAL-CAL-026", "VAL-CAL-030", "VAL-CAL-032"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "validatorsRun": {
+    "test": {"passed": true, "command": "uv run pytest -x -q", "exitCode": 0, "observation": "523 passed"},
+    "typecheck": {"passed": true, "command": "uv run pyright", "exitCode": 0, "observation": "0 errors"},
+    "lint": {"passed": true, "command": "uv run ruff check .", "exitCode": 0, "observation": "All checks passed"}
+  },
+  "appliedUpdates": [],
+  "previousRound": null,
+  "notes": [
+    "All 6 calendar-upgrade features shipped in round 1:",
+    "  - calendar-api-enhancements: range query (start/end) + attendees extraction on CalendarEvent.",
+    "  - calendar-date-navigation: left/right arrows, month wrap, 'Today' prefix in header.",
+    "  - calendar-views: day/week/agenda modes via v key cycle; week uses range API.",
+    "  - calendar-jump-to-date: Ctrl+G opens date input; parses ISO + 'May 1' + 'MM/DD/YYYY' formats.",
+    "  - calendar-event-editing: e key enters inline edit mode; Enter saves via PUT /calendar/events/{id}, Esc cancels.",
+    "  - calendar-multiday-attendees: multiday all_day events rendered across spanned days in week/agenda; attendees with ✅/❌/❓/⏳ status icons in detail pane."
+  ]
+}

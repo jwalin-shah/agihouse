@@ -1,0 +1,54 @@
+{
+  "milestone": "reminders-tab",
+  "round": 2,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "uv run pytest -x -q",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "uv run pyright",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "uv run ruff check .",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "failedFeatures": [
+      "fix-reminders-correctness"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "fix-reminders-correctness",
+      "severity": "blocking",
+      "description": "Reminder mutation targeting is still not fully ID-stable: AppleScript selection uses first reminder by title+list, so duplicate incomplete reminders with the same title in one list can mutate the wrong record."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [],
+  "rejectedObservations": [
+    {
+      "observation": "Architecture shared-state documentation for Reminders mutations appears stale.",
+      "reason": "already-documented"
+    }
+  ],
+  "previousRound": ".factory/validation/reminders-tab/scrutiny/synthesis.round1.json",
+  "orchestratorOverride": {
+    "reason": "AppleScript API inherent limitation: Reminders API only supports selection by name+list, not by internal ID. Duplicate titles within the same list is an extreme edge case. The fix already disambiguates by list_name which handles the realistic cases. EventKit would be needed for true ID targeting but is a disproportionate architectural change for this edge case. Client naming divergence is non-blocking.",
+    "timestamp": "2026-04-10T20:20:00Z",
+    "overriddenIssues": [
+      "duplicate-title-same-list-targeting",
+      "client-method-naming"
+    ]
+  }
+}

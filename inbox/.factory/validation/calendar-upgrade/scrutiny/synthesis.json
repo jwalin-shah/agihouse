@@ -1,0 +1,19 @@
+{
+  "milestone": "calendar-upgrade",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {"passed": true, "command": "uv run pytest -x -q", "exitCode": 0},
+    "typecheck": {"passed": true, "command": "uv run pyright", "exitCode": 0},
+    "lint": {"passed": true, "command": "uv run ruff check .", "exitCode": 0}
+  },
+  "reviewsSummary": {"total": 2, "passed": 2, "failed": 0, "failedFeatures": []},
+  "blockingIssues": [],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [],
+  "rejectedObservations": [],
+  "previousRound": null,
+  "notes": [
+    "All 6 calendar-upgrade features verified in round 1."
+  ]
+}

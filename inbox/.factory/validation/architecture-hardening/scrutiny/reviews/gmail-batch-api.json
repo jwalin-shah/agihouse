@@ -1,0 +1,26 @@
+{
+  "featureId": "gmail-batch-api",
+  "reviewedAt": "2026-04-10T18:47:18.251124+00:00",
+  "commitId": "5bf21bc34ee854147831ea3d568390936088a923",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The implementation satisfies the feature: gmail_contacts() now uses Gmail batch requests via new_batch_http_request() on the listing path, deduplicates threads before metadata fetch, preserves contact mapping fields, and includes a regression test demonstrating reduced round-trips versus returned threads.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "services",
+      "observation": "The default test command in .factory/services.yaml still excludes tests/test_audio.py and tests/test_llm.py, which can hide regressions now that full-suite validation is expected in this mission stage.",
+      "evidence": ".factory/services.yaml sets `test: uv run pytest --ignore=tests/test_audio.py --ignore=tests/test_llm.py -x -q`, while AGENTS.md documents full `uv run pytest -x -q` after milestone-1 fixes."
+    },
+    {
+      "area": "skills",
+      "observation": "Environment init flow is brittle because .factory/init.sh is not executable, causing recurring procedure deviations during worker runs.",
+      "evidence": "Transcript skillFeedback for this feature reports deviation: init script had Permission denied and was run with `sh`; file mode from LS shows `.factory/init.sh` as `-rw-r--r--` (no executable bit) despite having a bash shebang."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Review passed: the gmail-batch-api change is correct and aligned with architecture-hardening goals, with no blocking code defects identified in the commit diff."
+}

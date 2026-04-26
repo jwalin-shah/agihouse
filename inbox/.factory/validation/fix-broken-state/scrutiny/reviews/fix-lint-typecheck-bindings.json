@@ -1,0 +1,31 @@
+{
+  "featureId": "fix-lint-typecheck-bindings",
+  "reviewedAt": "2026-04-10T17:56:33Z",
+  "commitId": "cfcdca199ab0020e03be1c47dec3831de537707d",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Implementation satisfies the feature scope: pyright/ruff cleanup landed, keybindings now map Ctrl+1..8 to the 8 tabs, ambient toggle moved to Ctrl+Shift+6, and supporting updates in pyproject/lockfile and minor typing fixes are coherent with the stated goals. No blocking correctness issues were found in the reviewed diff.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The selected worker skill has a boundary mismatch with this feature. The backend-worker skill says not to use it for TUI changes, but this feature required substantial inbox.py (TUI) updates.",
+      "evidence": ".factory/skills/backend-worker/SKILL.md:21 says \"NOT for features that require TUI changes\"; commit cfcdca1 modifies inbox.py extensively (119-line diff with tab/keybinding/action changes)."
+    },
+    {
+      "area": "skills",
+      "observation": "The skill's mandatory RED step appears too rigid for lint/type/config repair features and caused a documented procedural deviation.",
+      "evidence": ".factory/skills/backend-worker/SKILL.md:38 requires \"Write failing tests first (RED)\"; handoff file ...43f8b996...json lines 61-67 records deviation and suggests allowing skips for pure type-fix/config-fix work."
+    },
+    {
+      "area": "knowledge",
+      "observation": "Architecture shared state is stale after this feature: it still documents 5 tabs and Ctrl+1-5, while implementation now has 8 tabs and ambient on Ctrl+Shift+6.",
+      "evidence": ".factory/library/architecture.md:64 describes 5 tabs; line 68 documents key bindings as Ctrl+1-5. inbox.py in cfcdca1 now defines Ctrl+1..8 tab filters plus Ctrl+Shift+6 for ambient."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed transcript skeleton and commit cfcdca1 for fix-lint-typecheck-bindings. The feature is correctly implemented for its required behavior and is marked pass; no code defects were identified in-scope. Logged three shared-state observations (skill boundary mismatch, RED-step rigidity for fix-only work, and stale architecture docs)."
+}

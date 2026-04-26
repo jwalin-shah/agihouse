@@ -1,0 +1,16 @@
+commands:
+  install: uv sync
+  test: uv run pytest --ignore=tests/test_audio.py --ignore=tests/test_llm.py -x -q
+  test_all: uv run pytest -x -q
+  typecheck: uv run pyright
+  lint: uv run ruff check .
+  lint_fix: uv run ruff check --fix .
+  format: uv run ruff format .
+
+services:
+  inbox-server:
+    start: cd /Users/jwalinshah/projects/inbox && uv run python inbox_server.py &
+    stop: lsof -ti :9849 | xargs kill 2>/dev/null || true
+    healthcheck: curl -sf http://localhost:9849/health
+    port: 9849
+    depends_on: []

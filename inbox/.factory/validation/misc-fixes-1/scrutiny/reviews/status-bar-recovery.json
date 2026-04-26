@@ -1,0 +1,11 @@
+{
+  "feature": "fix-status-bar-recovery",
+  "status": "pass",
+  "reviewer": "code-review",
+  "findings": [
+    "_bg_poll success path at inbox.py:1173 resets _consecutive_errors = 0, then:",
+    "  - if changed=True: calls _populate(status_override=None). _populate calls _render_sidebar() at line 1239, which sets the tab's normal status text. Since status_override is None, line 1240-1241 is skipped and the normal status persists.",
+    "  - if changed=False and _poll_had_error: explicitly calls _render_sidebar via call_from_thread, which re-renders and resets status.",
+    "Regression tests: test_status_bar_clears_unreachable_message_after_recovery (unchanged path) and test_status_bar_clears_after_recovery_with_changed_data (changed path). Both pass."
+  ]
+}

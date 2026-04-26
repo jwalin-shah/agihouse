@@ -1,0 +1,33 @@
+{
+  "featureId": "reminders-tui-tab",
+  "reviewedAt": "2026-04-10T19:59:23Z",
+  "commitId": "223bf9f",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The Reminders tab feature is largely implemented (Ctrl+6 tab, ReminderItem rendering, create/complete/edit/delete actions, empty state, and regression bindings), but there is a blocking correctness issue in reminder action targeting after filter changes.",
+    "issues": [
+      {
+        "file": "inbox.py",
+        "line": 1214,
+        "severity": "blocking",
+        "description": "`action_filter_reminder_list()` updates `_rem_list_filter` and re-renders the sidebar but does not clear `active_reminder` or the detail pane. Reminder actions (`action_complete_reminder` at line 1110, `action_edit_reminder` at line 1143, `action_delete_reminder` at line 1158) operate on `active_reminder` only, so after changing filters a hidden previously-selected reminder can still be completed/edited/deleted. This can apply destructive actions to an item that is no longer visible/selected in the current filtered view."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The handoff `commitId` for this feature points to a library-note commit instead of the implementation commit, which makes automated review/diff lookup ambiguous.",
+      "evidence": "Handoff file `handoffs/2026-04-10T19-55-11-613Z__reminders-tui-tab__36c1eb47-909f-495a-ad7b-2c51bfff5d1b.json` has `commitId: 223bf9f`, but `git show --stat 223bf9f` only changes `.factory/library/reminders-tab.md`; feature code changes are in `85b66ab` (`inbox.py`, `tests/test_inbox_app.py`)."
+    },
+    {
+      "area": "skills",
+      "observation": "The worker transcript records hypothetical interactive checks (\"Would launch TUI...\") instead of an actual tuistory run, despite the skill recommending tuistory when available for visual TUI verification.",
+      "evidence": "Transcript skeleton for session `36c1eb47-909f-495a-ad7b-2c51bfff5d1b` includes no `Skill` call for `tuistory`; handoff interactiveChecks are phrased as hypothetical actions rather than executed captures."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed transcript skeleton, handoff, and relevant diffs for reminders-tui-tab. Feature implementation is substantial, but fails review due to stale `active_reminder` state allowing complete/edit/delete on hidden reminders after list-filter changes."
+}

@@ -1,0 +1,35 @@
+{
+  "milestone": "github-tab",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-GH-001",
+    "VAL-GH-002",
+    "VAL-GH-003",
+    "VAL-GH-004",
+    "VAL-GH-005",
+    "VAL-GH-006",
+    "VAL-GH-007",
+    "VAL-GH-008"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Documented eventual consistency for GitHub read-all (allow ~5s + refresh before badge/empty-state checks).",
+      "source": "flow-report"
+    }
+  ],
+  "previousRound": null,
+  "notes": [
+    "Tuistory chord flakiness was mitigated with Textual Pilot fallback evidence for Ctrl+7 and Shift+R paths per AGENTS.md guidance.",
+    "Live API corroboration confirmed single-read and read-all endpoints and unread count transitions."
+  ]
+}

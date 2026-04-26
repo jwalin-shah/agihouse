@@ -1,0 +1,12 @@
+{
+  "feature": "drive-tui-tab",
+  "status": "pass",
+  "reviewer": "code-review",
+  "findings": [
+    "Ctrl+8 binding added; 8 tabs now keyboard-reachable.",
+    "DriveItem widget shows icon/name/date/size; multi-account tag shown when >1 account.",
+    "Navigation stack for folder enter/back; action_drive_go_back unwinds.",
+    "Upload/new folder/download/delete paths all call server endpoints via client.",
+    "Empty folder state handled; tests in test_inbox_app.py cover tab switching and list rendering."
+  ]
+}

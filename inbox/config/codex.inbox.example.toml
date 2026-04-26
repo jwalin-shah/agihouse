@@ -1,0 +1,28 @@
+[mcp_servers.inbox]
+command = "uv"
+args = ["run", "python", "inbox_mcp_stdio.py"]
+cwd = "/Users/jwalinshah/projects/inbox"
+
+[mcp_servers.inbox.env]
+INBOX_SERVER_URL = "http://127.0.0.1:9849"
+INBOX_SERVER_TOKEN = "${INBOX_SERVER_TOKEN}"
+
+[mcp_servers.inbox_readonly]
+command = "uv"
+args = ["run", "python", "inbox_mcp_readonly_stdio.py"]
+cwd = "/Users/jwalinshah/projects/inbox"
+
+[mcp_servers.inbox_readonly.env]
+INBOX_SERVER_URL = "http://127.0.0.1:9849"
+INBOX_SERVER_TOKEN = "${INBOX_SERVER_TOKEN}"
+
+# Dev/worktree example:
+#
+# [mcp_servers.inbox]
+# command = "uv"
+# args = ["run", "python", "inbox_mcp_stdio.py"]
+# cwd = "/Users/jwalinshah/projects/inbox-my-branch"
+#
+# [mcp_servers.inbox.env]
+# INBOX_SERVER_URL = "http://127.0.0.1:9850"
+# INBOX_SERVER_TOKEN = "${INBOX_SERVER_TOKEN}"

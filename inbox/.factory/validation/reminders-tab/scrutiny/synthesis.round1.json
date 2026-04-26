@@ -1,0 +1,70 @@
+{
+  "milestone": "reminders-tab",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "uv run pytest -x -q",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "uv run pyright",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "uv run ruff check .",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 2,
+    "passed": 0,
+    "failed": 2,
+    "failedFeatures": [
+      "reminders-server-enhancements",
+      "reminders-tui-tab"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "reminders-server-enhancements",
+      "severity": "blocking",
+      "description": "Reminder edit/delete mutations are applied to `first reminder whose name is ...` in AppleScript, so duplicate titles can mutate the wrong reminder and break ID-based endpoint semantics."
+    },
+    {
+      "featureId": "reminders-server-enhancements",
+      "severity": "blocking",
+      "description": "PUT/DELETE reminders endpoints resolve IDs from `reminders_list(..., limit=500)`, causing false 404 responses for valid reminder IDs outside the first 500 results."
+    },
+    {
+      "featureId": "reminders-tui-tab",
+      "severity": "blocking",
+      "description": "After reminder list filter changes, `active_reminder` is not reset; complete/edit/delete actions can target a hidden previously-selected reminder rather than a currently visible selection."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "skills",
+      "suggestion": "Require feature handoffs to set `commitId` to the implementation commit (or implementation range), not a follow-up docs/library-only commit.",
+      "evidence": "The reminders-tui-tab handoff references commit 223bf9f, which only updates .factory/library/reminders-tab.md; the actual feature diff for inbox.py/tests is in 85b66ab.",
+      "isSystemic": false
+    },
+    {
+      "target": "skills",
+      "suggestion": "Clarify that interactiveChecks must record executed validation actions and observed outcomes, not hypothetical 'would run' statements.",
+      "evidence": "The reminders-tui-tab transcript/handoff used hypothetical interactive checks and had no tuistory execution evidence despite UI-heavy scope.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Architecture library doc still says Reminders mutations are complete/create only.",
+      "reason": "already-documented"
+    }
+  ],
+  "previousRound": null
+}

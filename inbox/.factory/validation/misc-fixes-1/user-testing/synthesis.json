@@ -1,0 +1,29 @@
+{
+  "milestone": "misc-fixes-1",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-MISC-001",
+    "VAL-MISC-002"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "validatorsRun": {
+    "test": {"passed": true, "command": "uv run pytest -x -q", "exitCode": 0},
+    "typecheck": {"passed": true, "command": "uv run pyright", "exitCode": 0},
+    "lint": {"passed": true, "command": "uv run ruff check .", "exitCode": 0}
+  },
+  "appliedUpdates": [],
+  "previousRound": null,
+  "notes": [
+    "fix-status-bar-recovery: verified that after sustained outage recovery the status bar clears the red 'Server unreachable' message and shows normal tab status.",
+    "Both recovery paths (changed-data → _populate; unchanged-data → _render_sidebar) tested via Textual Pilot.",
+    "Behavior was already correct in current code (likely implicit fix from architecture-hardening resilience work); this round adds explicit regression coverage."
+  ]
+}

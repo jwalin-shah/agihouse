@@ -1,0 +1,11 @@
+{
+  "feature": "calendar-api-enhancements + calendar-jump-to-date",
+  "status": "pass",
+  "reviewer": "code-review",
+  "findings": [
+    "calendar_events now uses range_start/range_end instead of single-day bounds; single-date queries still work via start==end.",
+    "CalendarEvent gains attendees: list[dict] with name/email/responseStatus extracted from item.attendees.",
+    "Server endpoint accepts start= and end= query params, falls back to date= for backward compat.",
+    "Ctrl+G binding opens date input overlay; invalid dates show error toast without crashing."
+  ]
+}

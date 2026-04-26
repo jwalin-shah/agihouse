@@ -1,0 +1,24 @@
+# Inbox priorities — user-owned, never auto-updated by agent
+# Add senders and keywords that should boost triage urgency score by +1
+
+priority_senders:
+  - tierra@cerebras.net
+  # add more as needed
+
+priority_keywords:
+  - "action required"
+  - "offer"
+  - "interview"
+  - "urgent"
+  - "deadline"
+
+# Threads matching these patterns score 1 (ignore) regardless of other signals
+low_signal_patterns:
+  - "noreply@"
+  - "no-reply@"
+  - "unsubscribe"
+  - "notifications@"
+  - "do-not-reply"
+
+# Gmail label IDs to treat as high priority (use GET /gmail/labels to find IDs)
+priority_labels: []

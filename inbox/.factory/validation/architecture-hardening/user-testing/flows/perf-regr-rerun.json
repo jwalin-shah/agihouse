@@ -1,0 +1,75 @@
+{
+  "groupId": "perf-regr-rerun",
+  "testedAt": "2026-04-10T19:29:54.229570Z",
+  "isolation": {
+    "milestone": "architecture-hardening",
+    "missionDir": "/Users/jwalinshah/.factory/missions/15a2c771-b16e-4777-8cc6-e14e21bcfe28",
+    "repo": "/Users/jwalinshah/projects/inbox",
+    "port": 9849,
+    "constraints": [
+      "Used local repo and mission evidence path only",
+      "No live iMessage send performed",
+      "VAL-REGR-002 validated via unit tests per AGENTS guidance"
+    ]
+  },
+  "toolsUsed": [
+    "curl",
+    "pytest"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-PERF-002",
+      "title": "Local data load time",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Start cold server on port 9849 and wait for /health",
+          "expected": "Server becomes healthy, then first /conversations call is measurable",
+          "observed": "Health check succeeded on attempt 8"
+        },
+        {
+          "action": "Issue first GET /conversations?source=all&limit=50 using curl timing output",
+          "expected": "HTTP 200 and total request time < 3.0s (excluding startup)",
+          "observed": "HTTP 200, time_total=2.253231s, contacts=182"
+        }
+      ],
+      "evidence": {
+        "terminalOutputs": [
+          "architecture-hardening/perf-regr-rerun/VAL-PERF-002-curl-timing.txt",
+          "architecture-hardening/perf-regr-rerun/VAL-PERF-002-server.log"
+        ],
+        "network": "GET /conversations?source=all&limit=50 -> 200, time_total=2.253231s",
+        "responseArtifact": "architecture-hardening/perf-regr-rerun/VAL-PERF-002-first-conversations.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-REGR-002",
+      "title": "iMessage send and refresh",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Apply AGENTS safety guidance for VAL-REGR-002",
+          "expected": "Do not perform live iMessage send; validate via unit tests",
+          "observed": "Live send skipped intentionally; used focused pytest evidence for send path and optimistic UI flow"
+        },
+        {
+          "action": "Run focused pytest tests for send endpoint + optimistic send/reload behavior",
+          "expected": "Relevant tests pass",
+          "observed": "3 selected tests passed (server send path, client send call, inbox optimistic send flow)"
+        }
+      ],
+      "evidence": {
+        "terminalOutputs": [
+          "architecture-hardening/perf-regr-rerun/VAL-REGR-002-pytest-focused.txt"
+        ],
+        "consoleErrors": "n/a (CLI validation)",
+        "network": "n/a (validated by unit tests per AGENTS guidance)"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 2 assertions: VAL-PERF-002=pass (first /conversations 2.253231s), VAL-REGR-002=pass (validated through focused pytest coverage per AGENTS safety guidance)."
+}

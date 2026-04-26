@@ -1,0 +1,98 @@
+{
+  "groupId": "server-checks",
+  "testedAt": "2026-04-10T18:10:18Z",
+  "isolation": {
+    "workingDirectory": "/Users/jwalinshah/projects/inbox",
+    "serverUrl": "http://localhost:9849",
+    "port": 9849,
+    "serverManaged": true
+  },
+  "toolsUsed": ["curl"],
+  "assertions": [
+    {
+      "id": "VAL-FIX-004",
+      "title": "Server starts and /health returns 200",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Verify port 9849 is free with lsof -ti :9849",
+          "expected": "No output (port free)",
+          "observed": "No output — port 9849 was free"
+        },
+        {
+          "action": "Start server with uv run python inbox_server.py &",
+          "expected": "Server process starts in background",
+          "observed": "Server started with PID 19933"
+        },
+        {
+          "action": "Poll health endpoint: curl -sf http://localhost:9849/health",
+          "expected": "Returns HTTP 200 within polling window",
+          "observed": "Health check succeeded after ~3.24 seconds"
+        },
+        {
+          "action": "Capture HTTP status code: curl -s -o /dev/null -w \"%{http_code}\" http://localhost:9849/health",
+          "expected": "Prints 200",
+          "observed": "Printed 200"
+        },
+        {
+          "action": "Capture response body: curl -s http://localhost:9849/health",
+          "expected": "JSON body containing {\"status\": \"ok\"} or equivalent",
+          "observed": "{\"status\":\"ok\",\"gmail_accounts\":[\"jshah1331@gmail.com\",\"jwalinshah13@gmail.com\",\"jwalinsshah@gmail.com\"],\"calendar_accounts\":[\"jshah1331@gmail.com\",\"jwalinshah13@gmail.com\",\"jwalinsshah@gmail.com\"],\"drive_accounts\":[\"jshah1331@gmail.com\",\"jwalinshah13@gmail.com\",\"jwalinsshah@gmail.com\"],\"github_configured\":true}"
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "GET /health -> 200, content-type: application/json, content-length: 313",
+        "files": [
+          "fix-broken-state/server-checks/VAL-FIX-004-health-response.txt"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERF-001",
+      "title": "Server startup time",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Record timestamp before starting server",
+          "expected": "Timestamp recorded",
+          "observed": "Start timestamp: 1775844615.427099"
+        },
+        {
+          "action": "Start server with uv run python inbox_server.py &",
+          "expected": "Server process starts",
+          "observed": "Server started with PID 19933"
+        },
+        {
+          "action": "Poll health endpoint every 0.5s (max 20 attempts = 10s)",
+          "expected": "Health check succeeds within 10 seconds",
+          "observed": "Health check succeeded after 3.24 seconds"
+        },
+        {
+          "action": "Record timestamp after health check success",
+          "expected": "Timestamp recorded",
+          "observed": "End timestamp: 1775844618.668343"
+        },
+        {
+          "action": "Calculate elapsed time",
+          "expected": "Elapsed time < 10 seconds",
+          "observed": "Elapsed time: 3.24 seconds — well within the 10-second threshold"
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "GET /health -> 200 (after 3.24s from server launch)",
+        "files": [
+          "fix-broken-state/server-checks/VAL-PERF-001-startup-time.txt"
+        ]
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 2 assertions: 2 passed. VAL-FIX-004: Server started and /health returned HTTP 200 with {\"status\":\"ok\"} in the JSON body. VAL-PERF-001: Server became healthy in 3.24 seconds, well within the 10-second threshold."
+}

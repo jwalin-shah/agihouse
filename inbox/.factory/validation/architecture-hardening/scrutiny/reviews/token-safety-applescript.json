@@ -1,0 +1,21 @@
+{
+  "featureId": "token-safety-applescript",
+  "reviewedAt": "2026-04-10T18:47:37Z",
+  "commitId": "dde493c",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Implementation matches the feature contract and architecture-hardening goals: token refresh/write paths now use locked atomic writes, a dedicated _escape_applescript helper was added, and all AppleScript interpolation sites in services.py route through the sanitizer. Test coverage was expanded for sanitizer behavior and concurrent token writes, and no correctness defects were found in the reviewed diff.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "Worker procedure/environment setup guidance appears incomplete about running .factory/init.sh when executable bits are absent.",
+      "evidence": "Handoff file /Users/jwalinshah/.factory/missions/15a2c771-b16e-4777-8cc6-e14e21bcfe28/handoffs/2026-04-10T18-31-42-116Z__token-safety-applescript__1e8f2abf-49cb-4001-aa1b-c061b5abda10.json shows followedProcedure=false and documents fallback to `bash .../.factory/init.sh` after `Permission denied` (lines 67-76)."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed commit dde493c for token-safety-applescript and found it satisfies the specified behavior for token file locking and AppleScript escaping across required call sites, with adequate regression tests and no blocking/non-blocking code defects."
+}

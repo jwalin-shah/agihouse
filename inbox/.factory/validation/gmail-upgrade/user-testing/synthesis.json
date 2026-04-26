@@ -1,0 +1,32 @@
+{
+  "milestone": "gmail-upgrade",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 14,
+    "passed": 14,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-GM-001", "VAL-GM-002", "VAL-GM-003", "VAL-GM-004", "VAL-GM-005",
+    "VAL-GM-006", "VAL-GM-007", "VAL-GM-008", "VAL-GM-009", "VAL-GM-010",
+    "VAL-GM-011", "VAL-GM-012", "VAL-GM-013", "VAL-GM-014"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "validatorsRun": {
+    "test": {"passed": true, "command": "uv run pytest -x -q", "exitCode": 0, "observation": "523 passed"},
+    "typecheck": {"passed": true, "command": "uv run pyright", "exitCode": 0, "observation": "0 errors"},
+    "lint": {"passed": true, "command": "uv run ruff check .", "exitCode": 0, "observation": "All checks passed"}
+  },
+  "appliedUpdates": [],
+  "previousRound": null,
+  "notes": [
+    "Gmail action endpoints: archive, delete (trash), star/unstar, mark read/unread, labels list, compose, attachment download.",
+    "TUI actions wired in Gmail context with single-key bindings (a/d/s/r/u/c/l/t).",
+    "Compose flow opens overlay, sends via /messages/compose.",
+    "Attachments extracted from payload walker in services._extract_attachments; download endpoint returns binary.",
+    "Tests in tests/test_gmail_actions.py cover all service functions + server endpoints."
+  ]
+}

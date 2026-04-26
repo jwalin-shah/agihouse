@@ -1,0 +1,32 @@
+{
+  "featureId": "voice-pipeline-core",
+  "reviewedAt": "2026-04-10T00:00:00Z",
+  "status": "pass",
+  "codeReview": {
+    "summary": "voice-pipeline milestone ships four features: ambient-core, extraction-notes, dictation, and voice-actions-autostart. All new code follows existing patterns. No blocking issues found.",
+    "issues": []
+  },
+  "featuresReviewed": [
+    {
+      "id": "voice-ambient-core",
+      "status": "pass",
+      "notes": "AmbientService gains get_transcript() with TRANSCRIPT_MAXLEN cap. ambient_available() provides availability check. GET /ambient/transcript endpoint added. GET /ambient/status extended with available+reason fields."
+    },
+    {
+      "id": "voice-extraction-notes",
+      "status": "pass",
+      "notes": "Extraction pipeline already existed (extract_summary -> save_note). GET /ambient/notes?q= now filters by date. GET /ambient/notes/{date} already existed."
+    },
+    {
+      "id": "voice-dictation",
+      "status": "pass",
+      "notes": "GET /dictation/status endpoint added. DictationService.available gracefully handles missing binary. client.dictation_status() added."
+    },
+    {
+      "id": "voice-actions-autostart",
+      "status": "pass",
+      "notes": "Ambient autostart on server boot reads voice config. Voice config at ~/.config/inbox/voice.json with defaults. GET/PUT /voice/config endpoints. route_voice_command() hook with register_voice_command_handler()."
+    }
+  ],
+  "summary": "All four voice-pipeline sub-features implemented and tested. 40 new tests added (563 total, all passing). Pyright clean, ruff clean."
+}

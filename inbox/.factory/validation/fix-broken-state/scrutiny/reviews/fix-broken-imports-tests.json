@@ -1,0 +1,38 @@
+{
+  "featureId": "fix-broken-imports-tests",
+  "reviewedAt": "2026-04-10T17:55:57Z",
+  "commitId": "d1866b3810c220488f2a394703593ec1b20bab94",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The import-path migration to flattened modules is largely complete (no remaining `audio.*`/`llm.*` imports), but the server-side ambient note callback was replaced with a no-op, introducing a functional regression in ambient capture persistence.",
+    "issues": [
+      {
+        "file": "inbox_server.py",
+        "line": 210,
+        "severity": "blocking",
+        "description": "`ServerState` initializes `AmbientService` with `on_note=lambda raw, summary: None`, so `/ambient/start` capture no longer writes notes/topics to the vault. The prior callback behavior was removed in this commit (diff removed `_on_ambient_note`), which breaks ambient-note persistence while the service is running."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The backend-worker skill enforces strict RED-first testing, but for repair/refactor tasks like broken-import fixes, workers may need to update existing failing tests directly; the current procedure creates avoidable friction.",
+      "evidence": "handoffs/2026-04-10T17-44-48-420Z__fix-broken-imports-tests__791dd9f4-e1df-4aa8-9871-8d74a58b0b9b.json:54-62 records a deviation from step '3. Write failing tests first (RED)' and suggests adjusting skill guidance."
+    },
+    {
+      "area": "knowledge",
+      "observation": "Architecture docs are stale after module flattening and still describe deleted audio/llm modules and outdated component boundaries.",
+      "evidence": ".factory/library/architecture.md:92 and :94 still reference `llm.extract` and `audio.ambient.AmbientService`; line 26 still states services are plain functions with no classes."
+    },
+    {
+      "area": "services",
+      "observation": "Default test command in services registry still skips `tests/test_audio.py` and `tests/test_llm.py`, even though this feature restored those tests and validation now uses full suite.",
+      "evidence": ".factory/services.yaml:3 defines `test: uv run pytest --ignore=tests/test_audio.py --ignore=tests/test_llm.py -x -q`."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed transcript skeleton and commit d1866b3. Import fixes for deleted audio/llm modules are present, but the feature introduces a blocking regression: server ambient capture no longer persists notes because `AmbientService` uses a no-op callback."
+}

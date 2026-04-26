@@ -1,0 +1,74 @@
+{
+  "groupId": "runtime-outage-rerun",
+  "testedAt": "2026-04-10T19:26:39Z",
+  "isolation": {
+    "missionDir": "/Users/jwalinshah/.factory/missions/15a2c771-b16e-4777-8cc6-e14e21bcfe28",
+    "repo": "/Users/jwalinshah/projects/inbox",
+    "port": 9849,
+    "assignedAssertions": ["VAL-HARD-008"],
+    "surface": "tuistory"
+  },
+  "toolsUsed": ["tuistory", "curl"],
+  "assertions": [
+    {
+      "id": "VAL-HARD-008",
+      "title": "Server unreachable error handling in TUI",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Start server on port 9849 and confirm health.",
+          "expected": "Server healthy before outage scenario.",
+          "observed": "curl http://127.0.0.1:9849/health returned 200 with status ok."
+        },
+        {
+          "action": "Launch TUI via tuistory and capture initial state.",
+          "expected": "TUI loads and remains interactive.",
+          "observed": "InboxApp rendered successfully in terminal session."
+        },
+        {
+          "action": "Induce outage by killing process listening on 9849, then trigger retry with Ctrl+R.",
+          "expected": "TUI should show clear unreachable status and stay alive.",
+          "observed": "Status bar showed 'Server unreachable — press Ctrl+R to retry' and app continued running."
+        },
+        {
+          "action": "Keep outage active for sustained period (>30s threshold) and re-capture state.",
+          "expected": "No crash during sustained outage; persistent unreachable status remains visible.",
+          "observed": "After 35s outage wait, TUI clock advanced and status still showed the same unreachable message without exit/crash."
+        },
+        {
+          "action": "Supplemental: restart server and retry refresh.",
+          "expected": "Optional recovery behavior evidence.",
+          "observed": "Server health returned to 200; TUI stayed alive on retry, though status text remained 'Server unreachable — press Ctrl+R to retry'."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "architecture-hardening/runtime-outage-rerun/01-healthy-initial.png",
+          "architecture-hardening/runtime-outage-rerun/02-outage-after-refresh.png",
+          "architecture-hardening/runtime-outage-rerun/03-sustained-outage-after-wait.png",
+          "architecture-hardening/runtime-outage-rerun/04-recovery-after-restart.png",
+          "architecture-hardening/runtime-outage-rerun/05-recovery-second-retry.png"
+        ],
+        "terminalSnapshots": [
+          "architecture-hardening/runtime-outage-rerun/01-healthy-initial.txt",
+          "architecture-hardening/runtime-outage-rerun/02-outage-after-refresh.txt",
+          "architecture-hardening/runtime-outage-rerun/03-sustained-outage-after-wait.txt",
+          "architecture-hardening/runtime-outage-rerun/04-recovery-after-restart.txt",
+          "architecture-hardening/runtime-outage-rerun/05-recovery-second-retry.txt"
+        ],
+        "network": "Health checks: pre-outage 200, post-kill 000, post-restart 200 (curl against 127.0.0.1:9849/health)."
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "During supplemental recovery check, status bar remained on unreachable message even after server restart and manual Ctrl+R retries.",
+      "resolved": false,
+      "resolution": "Not resolved in this validation run; recorded as supplemental observation.",
+      "affectedAssertions": ["VAL-HARD-008"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 1 assertion (VAL-HARD-008): pass. Under sustained server outage, the TUI remained alive and displayed a clear unreachable status message instead of crashing. Supplemental recovery showed server health restored, but status text did not clear during this run."
+}

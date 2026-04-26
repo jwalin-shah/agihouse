@@ -1,0 +1,203 @@
+{
+  "groupId": "reminders-core-r2",
+  "testedAt": "2026-04-10T21:27:20.008250+00:00",
+  "isolation": {
+    "serverUrl": "http://127.0.0.1:9849",
+    "port": 9849,
+    "missionDir": "/Users/jwalinshah/.factory/missions/15a2c771-b16e-4777-8cc6-e14e21bcfe28",
+    "dataPrefix": "UTVR2-CORE-20260410T140945",
+    "boundaries": [
+      "Did not stop/start shared server",
+      "Used only http://127.0.0.1:9849",
+      "Mutated only uniquely-prefixed UTVR2-CORE-20260410T140945 reminders",
+      "Fetched fresh reminder IDs immediately before API complete/edit/delete corroboration calls"
+    ]
+  },
+  "toolsUsed": [
+    "tuistory",
+    "curl",
+    "pytest"
+  ],
+  "assertionResults": [
+    {
+      "id": "VAL-REM-001",
+      "status": "pass",
+      "reason": "tuistory did not dispatch Ctrl+6 in-session; per AGENTS known limitation fallback, pytest pilot coverage in tests/test_inbox_app.py validated Ctrl+6 reminder tab activation.",
+      "steps": [
+        {
+          "action": "Press Ctrl+6 in tuistory session",
+          "expected": "Reminders tab becomes active",
+          "observed": "Tab did not switch (known tuistory Ctrl+number limitation)"
+        },
+        {
+          "action": "Run pytest tests/test_inbox_app.py::test_ctrl6_switches_to_reminders_tab",
+          "expected": "Pilot test validates Ctrl+6 binding and reminders activation",
+          "observed": "Test passed (1 passed)"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "reminders-tab/reminders-core-r2/VAL-REM-001-after-ctrl6.png"
+        ],
+        "snapshots": [
+          "reminders-tab/reminders-core-r2/VAL-REM-001-after-ctrl6.txt"
+        ],
+        "network": "n/a (keyboard + pytest fallback evidence)",
+        "apiArtifacts": [
+          "reminders-tab/reminders-core-r2/VAL-REM-001-pytest.txt"
+        ]
+      }
+    },
+    {
+      "id": "VAL-REM-005",
+      "status": "pass",
+      "reason": "Completion action succeeded for TUI target reminder (C1), then reminder disappeared from default incomplete Random view after refresh; API corroboration complete endpoint returned ok:true using fresh ID.",
+      "steps": [
+        {
+          "action": "Select UTVR2-CORE-20260410T140945-C1 in Random filter and press c (after blur)",
+          "expected": "Reminder marked complete and removed from incomplete list",
+          "observed": "Status showed Completed 'UTVR2-CORE-20260410T140945-C1'"
+        },
+        {
+          "action": "Refresh reminders view",
+          "expected": "Completed reminder no longer visible in incomplete Random list",
+          "observed": "C1 row removed; count dropped (11 -> 10)"
+        },
+        {
+          "action": "Fetch fresh ID for UTVR2-CORE-20260410T140945-COMPLETE-API then POST /reminders/{id}/complete",
+          "expected": "API complete returns success and completed state persists",
+          "observed": "freshId=325; response={\"ok\":true}; post-state completed=true"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "reminders-tab/reminders-core-r2/VAL-REM-005-before-complete-c1.png",
+          "reminders-tab/reminders-core-r2/VAL-REM-005-after-complete-c1-attempt1.png",
+          "reminders-tab/reminders-core-r2/VAL-REM-005-after-complete-c1-refreshed.png"
+        ],
+        "snapshots": [
+          "reminders-tab/reminders-core-r2/VAL-REM-005-before-complete-c1.txt",
+          "reminders-tab/reminders-core-r2/VAL-REM-005-after-complete-c1-attempt1.txt",
+          "reminders-tab/reminders-core-r2/VAL-REM-005-after-complete-c1-refreshed.txt"
+        ],
+        "network": "POST /reminders/325/complete -> 200 {\"ok\":true}",
+        "apiArtifacts": [
+          "reminders-tab/reminders-core-r2/VAL-REM-005-api-complete.json",
+          "reminders-tab/reminders-core-r2/VAL-REM-005-tui-result-state.json"
+        ]
+      }
+    },
+    {
+      "id": "VAL-REM-006",
+      "status": "pass",
+      "reason": "TUI edit mode was entered for selected reminder and submitted change persisted (id 334 title now Q, old titles absent); API corroboration edit endpoint also returned ok:true using a fresh ID.",
+      "steps": [
+        {
+          "action": "Select reminder in Random list and trigger edit shortcut (e) with compose blur",
+          "expected": "Compose enters edit mode with selected title prefilled",
+          "observed": "Status showed \"Edit title in compose \u2014 Enter to save\" and compose prefilled with existing title"
+        },
+        {
+          "action": "Submit edited title from compose and refresh",
+          "expected": "Updated title reflected in reminders list",
+          "observed": "Refreshed list shows updated title \"Q\" in place of previous E1/E1-API title"
+        },
+        {
+          "action": "Fetch fresh ID for UTVR2-CORE-20260410T140945-EDIT-API then PUT /reminders/{id}",
+          "expected": "API edit returns success and updated title visible in API state",
+          "observed": "freshId=327; response={\"ok\":true}; title updated to UTVR2-CORE-20260410T140945-EDIT-API-UPDATED"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "reminders-tab/reminders-core-r2/VAL-REM-006-edit-mode-attempt2.png",
+          "reminders-tab/reminders-core-r2/VAL-REM-006-final-visible-q.png"
+        ],
+        "snapshots": [
+          "reminders-tab/reminders-core-r2/VAL-REM-006-edit-mode-attempt2.txt",
+          "reminders-tab/reminders-core-r2/VAL-REM-006-final-visible-q.txt"
+        ],
+        "network": "PUT /reminders/327 -> 200 {\"ok\":true}",
+        "apiArtifacts": [
+          "reminders-tab/reminders-core-r2/VAL-REM-006-api-edit.json",
+          "reminders-tab/reminders-core-r2/VAL-REM-006-tui-result-state.json"
+        ]
+      }
+    },
+    {
+      "id": "VAL-REM-007",
+      "status": "pass",
+      "reason": "Delete action removed the selected TUI target reminder (D1) from the Random list after settle/refresh; API delete corroboration returned ok:true using fresh ID.",
+      "steps": [
+        {
+          "action": "Select UTVR2-CORE-20260410T140945-D1 and press d (after blur)",
+          "expected": "Reminder deleted and removed from list",
+          "observed": "Status entered delete flow, then D1 no longer present after settle/refresh"
+        },
+        {
+          "action": "Refresh reminders view",
+          "expected": "Deleted reminder remains absent",
+          "observed": "D1 absent in refreshed Random list"
+        },
+        {
+          "action": "Fetch fresh ID for UTVR2-CORE-20260410T140945-DELETE-API then DELETE /reminders/{id}",
+          "expected": "API delete returns success and target no longer exists",
+          "observed": "freshId=329; response={\"ok\":true}; postExists=false"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "reminders-tab/reminders-core-r2/VAL-REM-007-before-delete.png",
+          "reminders-tab/reminders-core-r2/VAL-REM-007-after-delete-settled1.png"
+        ],
+        "snapshots": [
+          "reminders-tab/reminders-core-r2/VAL-REM-007-before-delete.txt",
+          "reminders-tab/reminders-core-r2/VAL-REM-007-after-delete-settled1.txt"
+        ],
+        "network": "DELETE /reminders/329 -> 200 {\"ok\":true}",
+        "apiArtifacts": [
+          "reminders-tab/reminders-core-r2/VAL-REM-007-api-delete.json",
+          "reminders-tab/reminders-core-r2/VAL-REM-007-tui-result-state.json"
+        ]
+      }
+    }
+  ],
+  "frictions": [
+    {
+      "description": "tuistory did not dispatch Ctrl+6 in-session for VAL-REM-001 (known Ctrl+number limitation).",
+      "resolved": true,
+      "resolution": "Used AGENTS-approved pytest/Pilot fallback evidence from tests/test_inbox_app.py::test_ctrl6_switches_to_reminders_tab.",
+      "affectedAssertions": [
+        "VAL-REM-001"
+      ]
+    },
+    {
+      "description": "Reminder action reliability depended on compose focus state; initial keypresses could route to compose instead of reminder actions.",
+      "resolved": true,
+      "resolution": "Used explicit blur sequence (Esc/click) before action keys; captured successful complete/delete/edit outcomes afterward.",
+      "affectedAssertions": [
+        "VAL-REM-005",
+        "VAL-REM-006",
+        "VAL-REM-007"
+      ]
+    },
+    {
+      "description": "tuistory relay disconnected twice during long chained interaction commands.",
+      "resolved": true,
+      "resolution": "Relaunched a single tuistory session and resumed remaining assertions, preserving evidence files from each stage.",
+      "affectedAssertions": [
+        "VAL-REM-006"
+      ]
+    },
+    {
+      "description": "One intermediate edit attempt produced unintended reminder title \"eZ\" while tuning focus/submit behavior.",
+      "resolved": true,
+      "resolution": "Continued with controlled edit flow, verified final selected reminder title update, and deleted the unintended reminder artifact (cleanup-delete-eZ.json).",
+      "affectedAssertions": [
+        "VAL-REM-006"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Retested 4 assertions (VAL-REM-001/005/006/007): all passed. VAL-REM-001 passed via AGENTS-approved pytest fallback due tuistory Ctrl+6 limitation; VAL-REM-005/006/007 were validated in TUI with curl corroboration using fresh IDs immediately before each mutation call."
+}
