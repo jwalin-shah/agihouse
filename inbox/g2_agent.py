@@ -125,6 +125,15 @@ class Blackboard:
                 for s in sorted(self._signals.values(), key=lambda x: x.priority, reverse=True)
             ]
 
+    async def reset(self) -> None:
+        """Clear all demo-visible state."""
+        async with self._lock:
+            self._signals.clear()
+            self.total_evaluated = 0
+            self.total_suppressed = 0
+            self.total_shown = 0
+            self.last_arbitrator_reasoning = ""
+
     def _prune(self) -> None:
         expired = [k for k, v in self._signals.items() if not v.is_active()]
         for k in expired:
@@ -561,6 +570,89 @@ reasoning = one sentence explaining your choice (for the demo panel).
 """
 
 
+def _signal_title(signal: Signal) -> str:
+    data = signal.data
+    return (
+        data.get("title")
+        or data.get("label")
+        or data.get("from")
+        or data.get("message")
+        or data.get("insight")
+        or signal.category.upper()
+    )
+
+
+def _signal_detail(signal: Signal) -> str:
+    data = signal.data
+    if signal.category == "meeting":
+        mins = data.get("minutes_away")
+        attendees = data.get("attendees", "")
+        return f"{mins} min · {attendees}" if mins is not None else str(attendees)
+    if signal.category == "message":
+        sender = data.get("from", "Message")
+        preview = data.get("preview", "")
+        return f"{sender}: {preview}" if preview else str(sender)
+    if signal.category == "reminder":
+        label = data.get("label", "Reminder")
+        title = data.get("title", "")
+        return f"{label} · {title}" if title else str(label)
+    return data.get("detail") or data.get("message") or data.get("insight") or signal.category
+
+
+def _rule_hud(signal: Signal) -> tuple[str, str]:
+    return str(_signal_title(signal))[:28], str(_signal_detail(signal))[:28]
+
+
+async def apply_demo_arbitration() -> dict[str, Any]:
+    """
+    Deterministic fast path for the demo panel.
+    This makes synthetic scenarios reliable even if the LLM arbitrator is slow.
+    """
+    signals = await blackboard.read_active()
+    blackboard.total_evaluated += 1
+
+    if not signals:
+        blackboard.last_arbitrator_reasoning = "Demo rule: no active signals."
+        return {"show": False, "reasoning": blackboard.last_arbitrator_reasoning}
+
+    top = signals[0]
+    if _attention_state == "focused" and top.priority < 8:
+        blackboard.total_suppressed += 1
+        blackboard.last_arbitrator_reasoning = (
+            f"Demo rule: focused mode suppresses {top.agent_id} priority {top.priority}."
+        )
+        return {"show": False, "agent_id": top.agent_id, "reasoning": blackboard.last_arbitrator_reasoning}
+
+    if top.priority <= 2:
+        blackboard.total_suppressed += 1
+        blackboard.last_arbitrator_reasoning = (
+            f"Demo rule: {top.agent_id} priority {top.priority} is low-noise, so stay silent."
+        )
+        return {"show": False, "agent_id": top.agent_id, "reasoning": blackboard.last_arbitrator_reasoning}
+
+    if top.priority >= 6:
+        line1, line2 = _rule_hud(top)
+        await ws_manager.broadcast_hud(line1, line2)
+        await blackboard.mark_shown(top.agent_id)
+        blackboard.total_shown += 1
+        blackboard.last_arbitrator_reasoning = (
+            f"Demo rule: showing highest-priority signal from {top.agent_id}."
+        )
+        return {
+            "show": True,
+            "agent_id": top.agent_id,
+            "line1": line1,
+            "line2": line2,
+            "reasoning": blackboard.last_arbitrator_reasoning,
+        }
+
+    blackboard.total_suppressed += 1
+    blackboard.last_arbitrator_reasoning = (
+        f"Demo rule: {top.agent_id} priority {top.priority} is informative but not urgent."
+    )
+    return {"show": False, "agent_id": top.agent_id, "reasoning": blackboard.last_arbitrator_reasoning}
+
+
 async def arbitrator_loop(blackboard: Blackboard, ws_manager: G2WebSocketManager) -> None:
     """
     Reads the blackboard every 10s.
@@ -577,11 +669,12 @@ async def arbitrator_loop(blackboard: Blackboard, ws_manager: G2WebSocketManager
         await asyncio.sleep(INTERVAL_ARBITRATOR)
         try:
             signals = await blackboard.read_active()
-            blackboard.total_evaluated += 1
 
             if not signals:
                 await asyncio.sleep(0)
                 continue
+
+            blackboard.total_evaluated += 1
 
             context_lines = [
                 f"attentionState={_attention_state}",

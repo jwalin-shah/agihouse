@@ -1228,7 +1228,10 @@ async def g2_inject_signal(body: dict):
         ttl=float(body.get("ttl", 120)),
     )
     await g2.blackboard.inject(signal)
-    return {"ok": True}
+    decision = None
+    if body.get("demo_mode", True):
+        decision = await g2.apply_demo_arbitration()
+    return {"ok": True, "decision": decision}
 
 
 @app.get("/g2/blackboard")
@@ -1260,6 +1263,14 @@ async def g2_push_hud(body: dict):
 @app.post("/g2/clear")
 async def g2_clear_hud():
     """Clear the HUD display."""
+    await g2.ws_manager.broadcast_clear()
+    return {"ok": True}
+
+
+@app.post("/g2/reset")
+async def g2_reset_demo():
+    """Reset demo state: clear HUD, blackboard, stats, and reasoning."""
+    await g2.blackboard.reset()
     await g2.ws_manager.broadcast_clear()
     return {"ok": True}
 

@@ -39,6 +39,17 @@
     .danger:hover { background: #ff333322; border-color: #ff3333; color: #ff5555; }
     .play-btn { grid-column: 1 / -1; background: #1a2a1a; border-color: #3CFA44; color: #3CFA44; text-align: center; }
     .play-btn:hover { background: #2a4a2a; }
+    .reset-btn { grid-column: 1 / -1; text-align: center; }
+
+    /* Timeline */
+    .timeline {
+      background: #0d0d0d; border: 1px solid #222; border-radius: 4px;
+      margin-top: 12px; padding: 10px;
+    }
+    .timeline-row { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; color: #888; }
+    .timeline-label { color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .timeline-track { height: 5px; background: #1a1a1a; border-radius: 99px; margin-top: 9px; overflow: hidden; }
+    .timeline-bar { width: 0%; height: 100%; background: #3CFA44; transition: width 0.2s linear; }
 
     /* Custom signal form */
     .form-row { display: flex; gap: 8px; margin-top: 10px; }
@@ -59,7 +70,8 @@
     .signal-row:last-child { border-bottom: none; }
     .agent { color: #3CFA44; }
     .prio { color: #ffaa00; font-weight: bold; text-align: center; }
-    .sig-data { color: #ccc; }
+    .sig-data { color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sig-sub { color: #666; display: block; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ttl { color: #555; text-align: right; }
     .shown { opacity: 0.4; }
 
@@ -154,7 +166,7 @@
           <button onclick="fire('morning')">
             <span class="btn-icon">🌅</span>
             Morning Startup
-            <span class="btn-label">priority 5 · system</span>
+            <span class="btn-label">priority 6 · system</span>
           </button>
           <button onclick="fire('silence')">
             <span class="btn-icon">🤫</span>
@@ -169,6 +181,17 @@
           <button class="play-btn" onclick="playTimeline()">
             ▶ &nbsp; Play 60s Timeline (auto-narrated)
           </button>
+          <button class="danger reset-btn" onclick="resetDemo()">
+            Reset Demo
+          </button>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-row">
+            <span id="timeline-label" class="timeline-label">Timeline idle</span>
+            <span id="timeline-time">0 / 62s</span>
+          </div>
+          <div class="timeline-track"><div id="timeline-bar" class="timeline-bar"></div></div>
         </div>
 
         <!-- Custom signal -->
@@ -226,6 +249,9 @@
   <script>
     let INBOX = localStorage.getItem('g2.demo.backend') || 'http://localhost:9849'
     let previewSocket = null
+    let timelineRun = 0
+    let timelineStartedAt = 0
+    let timelineTimer = null
 
     document.getElementById('backend-url').value = INBOX
 
@@ -305,7 +331,7 @@
         data: { title: '▶ Submit expense report', label: 'DUE 10m' }
       },
       morning: {
-        agent_id: 'context', priority: 5, category: 'system', ttl: 300,
+        agent_id: 'context', priority: 6, category: 'system', ttl: 300,
         data: { message: 'Morning brief ready', label: '○ GOOD MORNING' }
       },
       silence: {
@@ -320,9 +346,11 @@
         // Fire two signals simultaneously to show arbitrator choosing
         await post('/g2/signal', SCENARIOS.meeting5)
         await post('/g2/signal', SCENARIOS.actionitem)
+        poll()
         return
       }
       await post('/g2/signal', SCENARIOS[key])
+      poll()
     }
 
     async function fireCustom() {
@@ -337,6 +365,7 @@
         ttl: 120,
         data: { title: line1, detail: line2 }
       })
+      poll()
     }
 
     async function directPush() {
@@ -352,8 +381,31 @@
       updateHUDPreview('', '')
     }
 
+    async function resetDemo() {
+      timelineRun++
+      if (timelineTimer) clearInterval(timelineTimer)
+      updateTimeline('Timeline idle', 0, 62)
+      await post('/g2/reset', {})
+      updateHUDPreview('', '')
+      const r = document.getElementById('reasoning')
+      r.textContent = 'Arbitrator reasoning will appear here…'
+      r.className = 'reasoning'
+      poll()
+    }
+
+    function updateTimeline(label, elapsed, total) {
+      document.getElementById('timeline-label').textContent = label
+      document.getElementById('timeline-time').textContent = `${Math.min(Math.round(elapsed), total)} / ${total}s`
+      document.getElementById('timeline-bar').style.width = `${Math.min(100, (elapsed / total) * 100)}%`
+    }
+
     // 60-second scripted timeline
     async function playTimeline() {
+      const runId = ++timelineRun
+      if (timelineTimer) clearInterval(timelineTimer)
+      await resetDemo()
+      timelineRun = runId
+
       const steps = [
         { delay: 0,    action: () => fire('morning'),    label: 'Glasses on → morning brief' },
         { delay: 5000, action: () => fire('silence'),    label: 'Low-noise signal → should suppress' },
@@ -365,11 +417,24 @@
         { delay: 52000,action: () => fire('urgentmsg'),  label: 'Urgent message surfaces' },
         { delay: 62000,action: () => post('/g2/clear',{}), label: 'Timeline complete' },
       ]
+      const total = 62
+      timelineStartedAt = Date.now()
+      updateTimeline('Starting timeline', 0, total)
+      timelineTimer = setInterval(() => {
+        if (runId !== timelineRun) return
+        updateTimeline(document.getElementById('timeline-label').textContent, (Date.now() - timelineStartedAt) / 1000, total)
+      }, 250)
+
       for (const step of steps) {
+        if (runId !== timelineRun) return
         await new Promise(r => setTimeout(r, step.delay === 0 ? 0 : step.delay - (steps[steps.indexOf(step)-1]?.delay ?? 0)))
+        if (runId !== timelineRun) return
+        updateTimeline(step.label, (Date.now() - timelineStartedAt) / 1000, total)
         step.action()
         console.log(`[timeline] ${step.label}`)
       }
+      if (timelineTimer) clearInterval(timelineTimer)
+      updateTimeline('Timeline complete', total, total)
     }
 
     // HTTP helpers
@@ -401,7 +466,18 @@
       }
     }
 
-    let lastShownLine1 = ''
+    function signalTitle(signal) {
+      const d = signal.data || {}
+      return d.title || d.label || d.from || d.message || d.insight || signal.category
+    }
+
+    function signalDetail(signal) {
+      const d = signal.data || {}
+      if (signal.category === 'meeting') return `${d.minutes_away ?? '?'} min · ${d.attendees || 'no attendees'}`
+      if (signal.category === 'message') return `${d.from || 'Message'} · ${d.preview || ''}`
+      if (signal.category === 'reminder') return `${d.label || 'Reminder'} · ${d.title || ''}`
+      return d.detail || d.message || d.insight || signal.category
+    }
 
     async function poll() {
       try {
@@ -422,6 +498,9 @@
         if (data.last_reasoning) {
           r.textContent = '→ ' + data.last_reasoning
           r.className = 'reasoning active'
+        } else {
+          r.textContent = 'Arbitrator reasoning will appear here…'
+          r.className = 'reasoning'
         }
 
         // Attention badge
@@ -436,11 +515,12 @@
         } else {
           feed.innerHTML = data.signals.map(s => {
             const ttl = Math.round(s.ttl_remaining)
-            const dataStr = escapeHtml(JSON.stringify(s.data).slice(0, 60))
+            const title = escapeHtml(signalTitle(s))
+            const detail = escapeHtml(signalDetail(s))
             return `<div class="signal-row ${s.shown ? 'shown' : ''}">
               <span class="agent">${escapeHtml(s.agent_id)}</span>
               <span class="prio">${escapeHtml(s.priority)}</span>
-              <span class="sig-data">${dataStr}</span>
+              <span class="sig-data">${title}<span class="sig-sub">${detail}</span></span>
               <span class="ttl">${escapeHtml(ttl)}s</span>
             </div>`
           }).join('')
