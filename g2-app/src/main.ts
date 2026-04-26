@@ -24,6 +24,10 @@ const WS_URL = configuredWsUrl || defaultWsUrl()
 let socket: WebSocket | null = null
 let lastLine1 = ''
 let lastLine2 = ''
+let browserPreview = false
+let previewStatusEl: HTMLElement | null = null
+let previewLine1El: HTMLElement | null = null
+let previewLine2El: HTMLElement | null = null
 
 // IMU attention gate — rolling variance over last 10 samples
 const imuWindow: number[] = []
@@ -54,6 +58,106 @@ function persistHudState() {
   }
 }
 
+// ── Browser preview ──────────────────────────────────────────────────────────
+
+function renderBrowserPreview() {
+  browserPreview = true
+  document.body.innerHTML = `
+    <main class="preview-shell">
+      <section class="preview-meta">
+        <span>Ambient Copilot</span>
+        <span id="preview-status">connecting</span>
+      </section>
+      <section class="g2-screen" aria-label="G2 HUD preview">
+        <div id="preview-line1" class="line1">${lastLine1 || 'Waiting for signal'}</div>
+        <div id="preview-line2" class="line2">${lastLine2 || 'Trigger one from demo panel'}</div>
+      </section>
+    </main>
+  `
+  const style = document.createElement('style')
+  style.textContent = `
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #050505;
+      color: #3CFA44;
+      font-family: "SF Mono", "Fira Code", ui-monospace, monospace;
+    }
+    .preview-shell {
+      width: min(92vw, 680px);
+      display: grid;
+      gap: 12px;
+    }
+    .preview-meta {
+      display: flex;
+      justify-content: space-between;
+      color: #7b7b7b;
+      font-size: 12px;
+      letter-spacing: 0;
+    }
+    #preview-status { color: #3CFA44; }
+    .g2-screen {
+      aspect-ratio: 2 / 1;
+      width: 100%;
+      max-height: 288px;
+      border: 2px solid #3CFA44;
+      background: #000;
+      display: grid;
+      align-content: start;
+      padding: 48px 24px;
+      overflow: hidden;
+    }
+    .line1 {
+      min-height: 72px;
+      font-size: clamp(22px, 5vw, 34px);
+      line-height: 1.15;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+    .line2 {
+      margin-top: 18px;
+      min-height: 48px;
+      color: rgba(60, 250, 68, 0.72);
+      font-size: clamp(17px, 3.5vw, 24px);
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+  `
+  document.head.appendChild(style)
+  previewStatusEl = document.getElementById('preview-status')
+  previewLine1El = document.getElementById('preview-line1')
+  previewLine2El = document.getElementById('preview-line2')
+}
+
+function setPreviewStatus(status: string) {
+  if (previewStatusEl) previewStatusEl.textContent = status
+}
+
+function updatePreview(line1: string, line2: string) {
+  if (!browserPreview) return
+  if (previewLine1El) previewLine1El.textContent = line1 || 'Waiting for signal'
+  if (previewLine2El) previewLine2El.textContent = line2 || 'Trigger one from demo panel'
+}
+
+function renderHUD(line1: string, line2: string) {
+  if (browserPreview) {
+    updatePreview(line1, line2)
+    return
+  }
+  showHUD(line1, line2)
+}
+
+function renderClear() {
+  if (browserPreview) {
+    updatePreview('', '')
+    return
+  }
+  clearHUD()
+}
+
 // ── WebSocket ─────────────────────────────────────────────────────────────────
 
 function connectWS() {
@@ -63,8 +167,9 @@ function connectWS() {
 
   socket.onopen = () => {
     console.log('[g2] WebSocket connected')
+    setPreviewStatus('connected')
     // Replay last known state on reconnect
-    if (lastLine1) showHUD(lastLine1, lastLine2)
+    if (lastLine1) renderHUD(lastLine1, lastLine2)
   }
 
   socket.onmessage = (ev) => {
@@ -74,12 +179,12 @@ function connectWS() {
         lastLine1 = msg.line1 ?? ''
         lastLine2 = msg.line2 ?? ''
         persistHudState()
-        showHUD(lastLine1, lastLine2)
+        renderHUD(lastLine1, lastLine2)
       } else if (msg.type === 'clear') {
         lastLine1 = ''
         lastLine2 = ''
         persistHudState()
-        clearHUD()
+        renderClear()
       }
     } catch {
       // ignore malformed
@@ -88,6 +193,7 @@ function connectWS() {
 
   socket.onclose = () => {
     console.log('[g2] WebSocket closed — reconnecting in 3s')
+    setPreviewStatus('reconnecting')
     setTimeout(connectWS, 3000)
   }
 
@@ -122,15 +228,37 @@ function onImuData(x: number, y: number, z: number) {
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
+function waitForBridge(timeoutMs: number) {
+  return Promise.race([
+    waitForEvenAppBridge(),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+  ])
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs)),
+  ])
+}
+
 async function main() {
   loadHudState()
 
-  const bridge = await waitForEvenAppBridge()
+  const bridge = await waitForBridge(3500)
+  if (!bridge) {
+    renderBrowserPreview()
+    connectWS()
+    return
+  }
+
   setBridge(bridge)
 
-  const ok = await initHUD()
+  const ok = await withTimeout(initHUD(), 2000, false)
   if (!ok) {
-    console.error('[g2] HUD init failed')
+    console.warn('[g2] HUD init unavailable; starting browser preview')
+    renderBrowserPreview()
+    connectWS()
     return
   }
 
@@ -157,7 +285,7 @@ async function main() {
     if (event.sysEvent?.eventType === OsEventTypeList.FOREGROUND_ENTER_EVENT) {
       loadHudState()
       connectWS()
-      if (lastLine1) showHUD(lastLine1, lastLine2)
+      if (lastLine1) renderHUD(lastLine1, lastLine2)
     }
   })
 

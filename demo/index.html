@@ -90,6 +90,17 @@
       background: #1a2a1a; color: #3CFA44; border: 1px solid #3CFA4444; margin-top: 8px;
     }
     .attention-badge.focused { background: #2a1a1a; color: #ff8844; border-color: #ff884444; }
+
+    @media (max-width: 760px) {
+      body { padding: 14px; }
+      .layout { grid-template-columns: 1fr; }
+      .backend-row { grid-template-columns: 1fr; }
+      .btn-grid { grid-template-columns: 1fr; }
+      .form-row { flex-direction: column; }
+      .blackboard { height: 240px; }
+      .signal-row { grid-template-columns: 72px 28px 1fr; }
+      .ttl { display: none; }
+    }
   </style>
 </head>
 <body>
