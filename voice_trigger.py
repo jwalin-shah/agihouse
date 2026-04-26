@@ -6,6 +6,11 @@ HUD shows a one-line digest from inbox memory.
 Run:
     cd ~/projects/agihouse
     uv run --with anthropic python voice_trigger.py
+
+Future: gate audio with vad.SpeechGate before whisper. AmbientService today
+streams every frame through ASR; routing through SpeechGate first (in
+inbox/services.py) means only voiced segments become text, cutting CPU and
+narrowing the surface of overheard speech that ever leaves the audio thread.
 """
 
 from __future__ import annotations
