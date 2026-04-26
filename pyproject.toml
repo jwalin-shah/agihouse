@@ -5,7 +5,21 @@ description = "Ambient agent for Even Realities G2 — calendar nudges, message 
 requires-python = ">=3.11"
 dependencies = [
     "anthropic>=0.40.0",
+    "numpy>=1.26",
 ]
+
+[project.optional-dependencies]
+# On-device VAD gate (vad.py). Silero pulls torch.
+audio = [
+    "silero-vad>=5.0",
+    "torch>=2.2",
+]
+dev = [
+    "pytest>=8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [tool.uv]
 # Inbox is imported as a sibling project (sys.path hack in code).

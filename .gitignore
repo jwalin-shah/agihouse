@@ -1,8 +1,10 @@
 .venv/
 __pycache__/
 *.pyc
+.pytest_cache/
 .env
 state.json
+uv.lock
 g2-renderer/node_modules/
 g2-renderer/dist/
 g2-renderer/*.ehpk
