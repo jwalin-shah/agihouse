@@ -32,8 +32,14 @@ def _push_to_bridge(text: str) -> None:
     except (urllib.error.URLError, OSError):
         pass
 
+from audit import is_dry_run
+
 
 def notify(text: str, *, speak: bool = True) -> None:
+    if is_dry_run():
+        # Final kill switch: even if a gate accidentally allowed, dry_run mutes.
+        print(f"\n[dry_run] would notify: {text}\n", flush=True)
+        return
     print(f"\n>>> {text}\n", flush=True)
     if speak and shutil.which("say"):
         subprocess.Popen(["say", text])  # noqa: S603 — local TTS, no shell

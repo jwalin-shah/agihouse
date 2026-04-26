@@ -14,6 +14,8 @@ from pathlib import Path
 
 from anthropic import Anthropic
 
+from audit import gate, mark_fired
+
 # inbox project must already be on sys.path (ambient.py sets this up); make
 # this module also work when imported standalone.
 _INBOX_DIR = Path.home() / "projects" / "inbox"
@@ -176,6 +178,18 @@ def recall(
     if emails:
         items.extend(_gmail_items(emails, gmail_services, per=3))
 
+    # Gate AFTER we know how much prior correspondence exists, so the
+    # "require_prior_correspondence" rule has real input to check against.
+    decision = gate(
+        "recall",
+        person=name,
+        known_message_count=len(items),
+        emails=emails,
+        chat_id=chat_id,
+    )
+    if not decision.allow:
+        return None
+
     # Freshest first, then cap.
     items.sort(key=lambda r: r.get("timestamp") or "", reverse=True)
     # Dedup on (source, snippet head).
@@ -222,4 +236,5 @@ Write the HUD line now."""
     ).strip()
     if not text or text.lower() == "skip":
         return None
+    mark_fired("recall", person=name, output=text)
     return text

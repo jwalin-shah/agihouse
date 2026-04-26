@@ -1,0 +1,48 @@
+# Ambient agent policy — deterministic guardrails.
+#
+# These are HARD rules. The model never overrides them. Every decision the
+# agent makes is checked against this file and logged to audit.log so you
+# can audit exactly what the agent did and why.
+#
+# To rehearse without HUD output, set mode to "dry_run".
+
+mode: live          # live | dry_run    (dry_run logs everything, suppresses notify)
+log_path: audit.log
+
+# --- read-only by construction -------------------------------------------
+# Actions the agent is ALLOWED to take. Anything not here is denied.
+allowed_actions:
+  - recall          # surface a person-memory digest on HUD
+  - departure_nudge # "leave in N min" + context whisper for upcoming event
+  - commitment_log  # note an in-conversation commitment to a local file
+
+# Explicitly denied — listed to make the no-go surface visible to a reviewer.
+denied_actions:
+  - send_email
+  - send_imessage
+  - calendar_write
+  - delete_anything
+  - share_externally
+
+# --- restraint rules -----------------------------------------------------
+restraint:
+  # Don't surface the same person twice within this many seconds.
+  recall_cooldown_seconds: 300
+  # Don't surface a person we've never exchanged messages with.
+  require_prior_correspondence: true
+  # Maximum proposals per minute across ALL actions (anti-spam ceiling).
+  max_proposals_per_minute: 4
+
+# --- privacy rules -------------------------------------------------------
+privacy:
+  # Names/keywords the agent must NEVER surface, even if matched.
+  denylist_names: []
+  denylist_keywords:
+    - therapist
+    - lawyer
+    - HR
+  # If transcript matches any of these, suppress all proposals (sensitive context).
+  suppress_in_contexts:
+    - "off the record"
+    - "between us"
+    - "don't tell"

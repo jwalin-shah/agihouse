@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .env
 state.json
+audit.log
 uv.lock
 g2-renderer/node_modules/
 g2-renderer/dist/

@@ -146,11 +146,27 @@ def scenario_commitment_followup() -> None:
     notify(f"Noted: {commitment}.")
 
 
+def scenario_calibrated_silence() -> None:
+    """Show the agent deliberately staying quiet on an ambiguous trigger.
+
+    Pare-Bench frame: the model with the highest task success was the one that
+    proposed least often. This scenario rehearses that posture on stage.
+    """
+    _header("calibrated_silence")
+    transcript = "we should grab coffee sometime"
+    print(f"(heard) {transcript}", flush=True)
+    print("(decision) ambiguous commitment — no time, no person, no action verb on a calendar.", flush=True)
+    print("(decision) confidence below threshold → STAY SILENT.", flush=True)
+    # Intentionally no notify(). The HUD remains empty.
+    print("(HUD) <empty>", flush=True)
+
+
 SCENARIOS = {
     "leaving_for_meeting": scenario_leaving_for_meeting,
     "who_is_this_daniel": scenario_who_is_this_daniel,
     "who_is_this_sarah": scenario_who_is_this_sarah,
     "commitment_followup": scenario_commitment_followup,
+    "calibrated_silence": scenario_calibrated_silence,
 }
 
 

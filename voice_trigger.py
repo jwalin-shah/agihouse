@@ -30,9 +30,10 @@ if str(INBOX_DIR) not in sys.path:
     sys.path.insert(0, str(INBOX_DIR))
 os.chdir(INBOX_DIR)  # services.py uses BASE_DIR-relative paths
 
-from services import AmbientService, google_auth_all, whisper_stream_available  # noqa: E402
+from services import AmbientService, ambient_available, google_auth_all  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).parent))
+from audit import gate  # noqa: E402
 from output import notify  # noqa: E402
 from recall import recall  # noqa: E402
 
@@ -87,10 +88,23 @@ def _extract_recent_name(history: deque[tuple[float, str]]) -> str | None:
     return None
 
 
-def _fire(person: str, *, gmail_svcs: dict, cal_svcs: dict | None) -> None:
+def _fire(
+    person: str,
+    *,
+    gmail_svcs: dict,
+    cal_svcs: dict | None,
+    transcript_chunk: str = "",
+) -> None:
     person = _clean_name(person)
     if not person:
         print("[voice] empty name after cleaning, skipping", flush=True)
+        return
+    # Trigger-layer gate: catches sensitive-phrase suppression and denylists
+    # before we even hit Gmail/iMessage. recall() also gates internally for
+    # cooldown / prior-correspondence (which need its lookup results).
+    pre = gate("recall", person=person, transcript_chunk=transcript_chunk)
+    if not pre.allow:
+        print(f"[voice] suppressed: {pre.reason}", flush=True)
         return
     print(f"[voice] -> recall({person!r})", flush=True)
     try:
@@ -129,7 +143,7 @@ def make_on_note(gmail_svcs: dict, cal_svcs: dict | None):
                 start, end = m.span(1)
                 name = raw_transcript[start:end]
                 print(f"[voice] phrase={label!r} name={name!r}", flush=True)
-                _fire(name, gmail_svcs=gmail_svcs, cal_svcs=cal_svcs)
+                _fire(name, gmail_svcs=gmail_svcs, cal_svcs=cal_svcs, transcript_chunk=raw_transcript)
                 fired = True
 
         # "Who is this" — ambient lookup of last-mentioned name.
@@ -137,7 +151,7 @@ def make_on_note(gmail_svcs: dict, cal_svcs: dict | None):
             name = _extract_recent_name(history)
             if name:
                 print(f"[voice] phrase='who is this' name={name!r}", flush=True)
-                _fire(name, gmail_svcs=gmail_svcs, cal_svcs=cal_svcs)
+                _fire(name, gmail_svcs=gmail_svcs, cal_svcs=cal_svcs, transcript_chunk=raw_transcript)
                 fired = True
             else:
                 print("[voice] phrase='who is this' but no recent name found", flush=True)
@@ -162,8 +176,9 @@ def handle_signal(signum, frame):
 def main() -> None:
     global _daemon_service, _should_exit
 
-    if not whisper_stream_available():
-        print("[voice] ERROR: whisper-stream binary or model not available", file=sys.stderr)
+    ok, reason = ambient_available()
+    if not ok:
+        print(f"[voice] ERROR: ambient transcription unavailable — {reason}", file=sys.stderr)
         sys.exit(1)
 
     gmail_svcs, cal_svcs, *_ = google_auth_all()
