@@ -42,7 +42,8 @@ the person's hand. No greetings, no preamble, no emoji, no quotation marks.
 Preferred shape:
   "<Person> — <last meaningful exchange, short> — <pending action or next beat>."
 If there is no pending action, drop that segment.
-If the items are empty, stale, or trivial, output the single token "skip".
+Even if items are short/casual, still produce a one-line digest using what's
+there. Never output "skip".
 
 Never invent facts. Use only what's in the items."""
 
@@ -86,15 +87,24 @@ def _resolve_identifiers(
         convs = imsg_contacts(limit=200)
     except Exception:
         convs = []
+    def _norm_phone(p: str) -> str:
+        digits = re.sub(r"\D", "", p)
+        if len(digits) == 10:
+            digits = "1" + digits
+        return digits
+
     needle = person.lower()
     name_lc = name.lower()
-    id_set = {e.lower() for e in emails} | {p for p in phones}
+    phone_digits = {_norm_phone(p) for p in phones if p}
+    id_set = {e.lower() for e in emails}
     for c in convs:
         if c.is_group:
             continue
         hay = (c.name or "").lower()
         member_hits = any(
-            (m.lower() in id_set) or (needle and needle in m.lower())
+            (m.lower() in id_set)
+            or (m and _norm_phone(m) and _norm_phone(m) in phone_digits)
+            or (needle and needle in m.lower())
             for m in (c.members or [])
         )
         if needle and (needle in hay or name_lc in hay) or member_hits:
@@ -206,35 +216,15 @@ def recall(
     if not items:
         return None
 
-    user = f"""Person: {name}
-Known emails: {', '.join(emails) or '(none)'}
-Known phones: {', '.join(phones) or '(none)'}
-
-Recent exchanges (freshest first):
-{_render(items)}
-
-Write the HUD line now."""
-
-    try:
-        resp = _client_singleton().messages.create(
-            model=_MODEL,
-            max_tokens=80,
-            system=[
-                {
-                    "type": "text",
-                    "text": SYSTEM,
-                    "cache_control": {"type": "ephemeral"},
-                }
-            ],
-            messages=[{"role": "user", "content": user}],
-        )
-    except Exception:
-        return None
-
-    text = "".join(
-        b.text for b in resp.content if getattr(b, "type", "") == "text"
-    ).strip()
-    if not text or text.lower() == "skip":
-        return None
+    # No-LLM path: surface the freshest snippet directly. Demo-grade,
+    # deterministic, no API key required.
+    first = items[0]
+    snippet = (first.get("snippet") or "").strip().replace("\n", " ")
+    if len(snippet) > 140:
+        snippet = snippet[:137] + "…"
+    src = first.get("source", "")
+    text = f'{name} — "{snippet}"' if snippet else f"{name} — recent contact"
+    if src:
+        text = f"{text} ({src})"
     mark_fired("recall", person=name, output=text)
     return text

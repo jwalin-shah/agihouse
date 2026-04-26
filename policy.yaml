@@ -27,7 +27,7 @@ denied_actions:
 # --- restraint rules -----------------------------------------------------
 restraint:
   # Don't surface the same person twice within this many seconds.
-  recall_cooldown_seconds: 300
+  recall_cooldown_seconds: 5
   # Don't surface a person we've never exchanged messages with.
   require_prior_correspondence: true
   # Maximum proposals per minute across ALL actions (anti-spam ceiling).

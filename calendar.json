@@ -1,0 +1,44 @@
+[
+  {
+    "title": "AGI House demo prep",
+    "when": "2026-04-26 18:00",
+    "with": [
+      "Tarun",
+      "Rohith"
+    ]
+  },
+  {
+    "title": "demo presentation",
+    "when": "2026-04-27 14:00",
+    "with": [
+      "judges"
+    ]
+  },
+  {
+    "title": "lunch w/ Jay",
+    "when": "2026-04-28 12:30",
+    "with": [
+      "Jay"
+    ]
+  },
+  {
+    "title": "event",
+    "when": "9pm",
+    "created": 1777244598.383144
+  },
+  {
+    "title": "meeting",
+    "when": "tomorrow",
+    "created": 1777244869.09501
+  },
+  {
+    "title": "come with me",
+    "when": "tomorrow 11am",
+    "created": 1777245037.074948
+  },
+  {
+    "title": "demo",
+    "when": "tonight at 7pm",
+    "created": 1777245945.7400022
+  }
+]

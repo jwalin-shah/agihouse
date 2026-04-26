@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Tarun",
+    "aliases": ["tarun", "tarun s"],
+    "phone": "+15551234567",
+    "email": "tarun@example.com",
+    "context": "co-judge, expecting demo recording tonight"
+  },
+  {
+    "name": "Rohith Dara",
+    "aliases": ["rohith", "rohith dara"],
+    "phone": "+15555550111",
+    "email": "rohith@example.com",
+    "context": "teammate"
+  },
+  {
+    "name": "Mom",
+    "aliases": ["mom", "mother"],
+    "phone": "+15555550222",
+    "email": null,
+    "context": "family"
+  },
+  {
+    "name": "Jay",
+    "aliases": ["jay"],
+    "phone": "+15555550333",
+    "email": "jay@example.com",
+    "context": "advisor"
+  }
+]

@@ -4,24 +4,28 @@ version = "0.1.0"
 description = "Ambient agent for Even Realities G2 — calendar nudges, message context, memory recall."
 requires-python = ">=3.11"
 dependencies = [
+    # Core
     "anthropic>=0.40.0",
     "numpy>=1.26",
+    "pyyaml>=6.0",
+    # Trigger server
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    # Audio path
+    "silero-vad>=5.0",
+    "torch>=2.2",
+    "requests>=2.31",
+    # Inbox runtime imports (Gmail/iMessage via services.py)
+    "google-api-python-client>=2.140",
+    "google-auth-oauthlib>=1.2",
+    "httpx>=0.27",
+    "loguru>=0.7",
 ]
 
 [project.optional-dependencies]
-# On-device VAD gate (vad.py). Silero pulls torch.
-audio = [
-    "silero-vad>=5.0",
-    "torch>=2.2",
-]
 dev = [
     "pytest>=8",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-
-[tool.uv]
-# Inbox is imported as a sibling project (sys.path hack in code).
-# Its own deps (google-api-python-client, etc.) come from the inbox venv at runtime
-# when we exec there. For dev we just pip-install what we directly use.

@@ -29,14 +29,22 @@ if str(INBOX_DIR) not in sys.path:
     sys.path.insert(0, str(INBOX_DIR))
 os.chdir(INBOX_DIR)  # services.py uses BASE_DIR-relative paths
 
-from services import google_auth_all  # noqa: E402
-
 sys.path.insert(0, str(Path(__file__).parent))
-from ambient import _load_state, tick  # noqa: E402
-from output import notify  # noqa: E402
-from recall import recall  # noqa: E402
 
-from fastapi import FastAPI, HTTPException  # noqa: E402
+# Inbox stack is optional — /push and /events work without it. /recall and /tick
+# will 503 if the import failed (e.g. google deps missing in this venv).
+_INBOX_IMPORT_ERR: str | None = None
+try:
+    from services import google_auth_all  # noqa: E402
+    from ambient import _load_state, tick  # noqa: E402
+    from output import notify  # noqa: E402
+    from recall import recall  # noqa: E402
+except Exception as _e:
+    _INBOX_IMPORT_ERR = repr(_e)
+    google_auth_all = None  # type: ignore[assignment]
+    _load_state = tick = notify = recall = None  # type: ignore[assignment]
+
+from fastapi import FastAPI, HTTPException, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import StreamingResponse  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
@@ -66,13 +74,12 @@ class PushBody(BaseModel):
 
 @app.on_event("startup")
 def _auth_once() -> None:
-    try:
-        gmail_svcs, cal_svcs, *_ = google_auth_all()
-        _state["gmail_services"] = gmail_svcs
-        _state["cal_services"] = cal_svcs
-    except Exception as e:  # let server start anyway
-        _state["auth_error"] = repr(e)
-        print(f"[trigger_server] startup auth failed: {e!r}", file=sys.stderr)
+    # Demo path is mic → VAD → Groq → recall (iMessage local sqlite). Gmail
+    # is not on the hot path; recall.py guards Gmail calls with try/except,
+    # so we leave gmail_services None and skip the OAuth refresh entirely.
+    if _INBOX_IMPORT_ERR is not None:
+        _state["auth_error"] = f"inbox import failed: {_INBOX_IMPORT_ERR}"
+        print(f"[trigger_server] inbox unavailable: {_INBOX_IMPORT_ERR}", file=sys.stderr)
 
 
 @app.get("/health")
@@ -83,8 +90,6 @@ def health() -> dict:
 @app.post("/recall")
 def recall_endpoint(body: RecallBody) -> dict:
     gmail_svcs = _state.get("gmail_services")
-    if not gmail_svcs:
-        raise HTTPException(status_code=503, detail=f"auth not ready: {_state.get('auth_error')}")
     name = body.name.strip()
     try:
         text = recall(
@@ -105,15 +110,103 @@ def recall_endpoint(body: RecallBody) -> dict:
 
 
 @app.post("/tick")
-def tick_endpoint() -> dict:
+def tick_endpoint(include_far: bool = False) -> dict:
     state = _load_state()
     state["alerted"] = []
     try:
-        tick(state, force=True)
+        tick(state, force=True, include_far=include_far)
     except Exception as e:
         print(f"[trigger_server] tick failed: {e!r}", file=sys.stderr)
         raise HTTPException(status_code=500, detail=repr(e))
     return {"ok": True}
+
+
+DEMO_SCENARIOS: dict[str, list[str]] = {
+    "departure": [
+        "Leave in 12 min — 14 min drive to Sequoia HQ.",
+        "Daniel: deck v7 in drive — break a leg.",
+    ],
+    "who_is_daniel": [
+        'Daniel Park — last text Mon: "deck ready by Friday?" Pending: send the deck.',
+    ],
+    "who_is_sarah": [
+        'Sarah Chen — Thursday lunch on the table. No reply yet.',
+    ],
+    "commitment": [
+        "Noted: send deck tonight to Daniel Park.",
+    ],
+    "silence": [],  # demonstrates calibrated silence — pushes nothing
+}
+
+
+SUPPRESSED_DEMOS: dict[str, dict] = {
+    "silence": {
+        "reason": "ambiguous commitment — no time, no person, no action verb on a calendar",
+        "transcript": "we should grab coffee sometime",
+    },
+    "privacy_therapist": {
+        "reason": "context contains denied keyword ('therapist')",
+        "transcript": "my therapist said I should set boundaries",
+    },
+    "off_the_record": {
+        "reason": "sensitive context phrase detected ('off the record')",
+        "transcript": "this is off the record but Daniel mentioned the round",
+    },
+    "cooldown": {
+        "reason": "recall cooldown active — already surfaced this person 90s ago",
+        "transcript": "remind me about Daniel Park",
+    },
+}
+
+
+@app.post("/demo/{scenario}")
+async def demo_endpoint(scenario: str) -> dict:
+    # Suppressed scenarios — emit a policy decision to audit.log, push NOTHING.
+    if scenario in SUPPRESSED_DEMOS:
+        info = SUPPRESSED_DEMOS[scenario]
+        from audit import log_event  # type: ignore
+        log_event(
+            "suppressed",
+            action="recall",
+            reason=info["reason"],
+            transcript_chunk=info["transcript"],
+        )
+        return {"ok": True, "scenario": scenario, "pushed": 0, "suppressed": True, **info}
+
+    if scenario not in DEMO_SCENARIOS:
+        raise HTTPException(status_code=404, detail=f"unknown scenario: {scenario}")
+    lines = DEMO_SCENARIOS[scenario]
+    pushed = 0
+    for i, line in enumerate(lines):
+        if i > 0:
+            await asyncio.sleep(2.0)
+        payload = json.dumps({"text": line})
+        for q in list(_subscribers):
+            try:
+                q.put_nowait(payload)
+            except asyncio.QueueFull:
+                pass
+        pushed += 1
+    return {"ok": True, "scenario": scenario, "pushed": pushed}
+
+
+_glasses_audio = None
+
+def _audio_pipeline():
+    global _glasses_audio
+    if _glasses_audio is None:
+        from audio_pipeline import GlassesAudioPipeline  # noqa: WPS433  (lazy)
+        _glasses_audio = GlassesAudioPipeline(lambda: _state.get("gmail_services"))
+    return _glasses_audio
+
+
+@app.post("/audio")
+async def audio_endpoint(request: Request) -> dict:
+    body = await request.body()
+    n = len(body)
+    if n:
+        _audio_pipeline().feed(body)
+    return {"ok": True, "bytes": n}
 
 
 @app.post("/push")

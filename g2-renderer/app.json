@@ -10,7 +10,11 @@
     {
       "name": "network",
       "desc": "Subscribe to ambient nudges from the user's local trigger server.",
-      "whitelist": ["REPLACE_WITH_LAN_IP:9876"]
+      "whitelist": ["https://trigger-dogs-past-experiments.trycloudflare.com"]
+    },
+    {
+      "name": "g2-microphone",
+      "desc": "Capture audio from the glasses to recognize wake phrases for memory recall."
     }
   ],
   "supported_languages": ["en"]

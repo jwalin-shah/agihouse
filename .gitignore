@@ -5,8 +5,14 @@ __pycache__/
 .env
 state.json
 audit.log
+actions.jsonl
+memories.jsonl
+reminders.json
+notes.json
 uv.lock
+.DS_Store
 g2-renderer/node_modules/
 g2-renderer/dist/
 g2-renderer/*.ehpk
 g2-renderer/.env.local
+*.pt
