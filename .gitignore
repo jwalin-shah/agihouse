@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .env
 state.json
+g2-renderer/node_modules/
+g2-renderer/dist/
+g2-renderer/*.ehpk
+g2-renderer/.env.local

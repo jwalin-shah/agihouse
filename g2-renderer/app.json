@@ -1,0 +1,17 @@
+{
+  "package_id": "com.agihouse.ambient",
+  "edition": "202601",
+  "name": "Agihouse Ambient",
+  "version": "0.1.0",
+  "min_app_version": "2.0.0",
+  "min_sdk_version": "0.0.10",
+  "entrypoint": "index.html",
+  "permissions": [
+    {
+      "name": "network",
+      "desc": "Subscribe to ambient nudges from the user's local trigger server.",
+      "whitelist": ["REPLACE_WITH_LAN_IP:9876"]
+    }
+  ],
+  "supported_languages": ["en"]
+}
