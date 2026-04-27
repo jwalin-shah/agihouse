@@ -62,9 +62,13 @@ _WRITE_ACTIONS = {
 def _strip_to_json(text: str) -> str:
     text = strip_code_fence(text)
     # Some models prefix JSON with leading commentary; chop everything before
-    # the first opening brace.
-    idx = text.find("{")
-    return text[idx:] if idx > 0 else text
+    # the first opening brace or bracket.
+    candidates = [text.find(c) for c in ("{", "[")]
+    idxs = [i for i in candidates if i >= 0]
+    if not idxs:
+        return text
+    start = min(idxs)
+    return text[start:] if start > 0 else text
 
 
 async def extract(transcript: str, *, model: str | None = None) -> dict[str, Any] | None:
