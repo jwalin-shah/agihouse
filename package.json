@@ -1,0 +1,35 @@
+{
+  "name": "presence-g2",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n backend,web -c cyan,green \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:web": "vite --host 0.0.0.0",
+    "dev:server": "tsx watch server/index.ts",
+    "sim": "evenhub-simulator http://localhost:5173 --automation-port 9898",
+    "start:server": "tsx server/index.ts",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@evenrealities/even_hub_sdk": "^0.0.10",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "openai": "^4.85.1"
+  },
+  "devDependencies": {
+    "@evenrealities/evenhub-cli": "^0.1.13",
+    "@evenrealities/evenhub-simulator": "^0.7.3",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.13.1",
+    "concurrently": "^9.1.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
+  }
+}

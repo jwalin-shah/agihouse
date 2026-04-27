@@ -13,8 +13,14 @@ reminders.json
 notes.json
 uv.lock
 .DS_Store
+node_modules/
+dist/
+server-data/
+vault/
+npm-debug.log*
+*.ehpk
+*.pt
 g2-renderer/node_modules/
 g2-renderer/dist/
 g2-renderer/*.ehpk
 g2-renderer/.env.local
-*.pt
