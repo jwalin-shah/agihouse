@@ -5,8 +5,32 @@ in System Settings -> Privacy & Security -> Automation -> Terminal/Python -> Mes
 """
 from __future__ import annotations
 
+import json
 import os
 import subprocess
+from pathlib import Path
+
+_CONTACTS_PATH = Path(__file__).parent / "contacts.json"
+
+
+def _service_for_handle(handle: str) -> str | None:
+    try:
+        contacts = json.loads(_CONTACTS_PATH.read_text())
+    except Exception:
+        return None
+    needle = handle.strip().lower()
+    for c in contacts:
+        if not isinstance(c, dict):
+            continue
+        candidates = {str(c.get("phone") or "").strip().lower(),
+                      str(c.get("email") or "").strip().lower(),
+                      str(c.get("name") or "").strip().lower()}
+        candidates.update(str(a).strip().lower() for a in (c.get("aliases") or []))
+        if needle and needle in candidates:
+            svc = str(c.get("service") or "").strip().lower()
+            if svc in {"imessage", "sms"}:
+                return svc
+    return None
 
 
 _APPLESCRIPT_SEND = """
@@ -43,6 +67,11 @@ def _send_with_service(handle: str, text: str, service: str) -> tuple[bool, str]
 
 
 def send(handle: str, text: str) -> tuple[bool, str]:
+    contact_service = _service_for_handle(handle)
+    if contact_service:
+        return _send_with_service(handle, text, contact_service)
+    if os.environ.get("AGIHOUSE_FORCE_SMS", "").strip().lower() in {"1", "true", "yes"}:
+        return _send_with_service(handle, text, "sms")
     ok, msg = _send_with_service(handle, text, "imessage")
     if ok:
         return ok, msg

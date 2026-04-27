@@ -31,6 +31,9 @@ import requests
 from action_runtime import evaluate_and_dispatch
 from actions import lookup_contact
 from event_extractor import extract as extract_event
+from memory_analyzer import analyze as analyze_memory
+from obsidian_writer import write_memory as write_memory_note
+from proactive_assist import assist as proactive_assist
 from output import notify
 from recall import recall
 from vad import SpeechGate, FRAME_SAMPLES, SAMPLE_RATE
@@ -131,6 +134,22 @@ class GlassesAudioPipeline:
         self._handle_text(text)
         # Fan out: event extractor runs in parallel, doesn't block recall.
         self._exec.submit(self._handle_event, text)
+        # Fan out: rich memory analysis -> Obsidian vault, also non-blocking.
+        self._exec.submit(self._handle_memory, text)
+        # Fan out: proactive assist scans vault for relevant past memory.
+        self._exec.submit(proactive_assist, text)
+
+    def _handle_memory(self, text: str) -> None:
+        try:
+            memory = analyze_memory(text)
+        except Exception as e:
+            print(f"[glasses-audio] memory analyze failed: {e!r}", file=sys.stderr)
+            return
+        if not memory:
+            return
+        path = write_memory_note(memory, text, source="g2-audio")
+        if path:
+            print(f"[glasses-audio] memory -> {path}", file=sys.stderr)
 
     def _handle_event(self, text: str) -> None:
         # No pre-filter: Groq 8b is fast + cheap, and the model itself is a

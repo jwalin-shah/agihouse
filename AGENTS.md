@@ -119,35 +119,35 @@ cd g2-renderer && ./node_modules/.bin/evenhub qr --url http://<lan-ip>:5173
 <claude-mem-context>
 # Memory Context
 
-# [agihouse] recent context, 2026-04-26 5:14pm PDT
+# [agihouse] recent context, 2026-04-26 5:45pm PDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 20 obs (6,610t read) | 77,589t work | 91% savings
+Stats: 20 obs (5,496t read) | 34,542t work | 84% savings
 
 ### Apr 26, 2026
-6309 5:01p 🟣 assistant_seed.py — Distractor Messages Added to Tensor Demo Dataset
-6310 " ✅ docs/DEMO_RUNBOOK.md Created — Stage Script + What Not To Add
-6311 " 🔵 One Cosmetic tl_recall Reference Remains in voice_trigger.py Error String
-6312 5:02p ✅ voice_trigger.py — Last tl_recall String Reference Renamed to tensor_recall
-6313 " ⚖️ AGIHouse PR Ready — All Checks Pass, Zero tl_recall References in Live Code
-6314 " ⚖️ AGIHouse Codebase Fully Clean — Zero tl_recall References Anywhere, PR-Ready
-6315 " 🔵 contacts.json — 4 Demo Contacts with Aliases + Context
-6316 5:03p 🔵 audio_pipeline.py Performs Contact Resolution for send_imessage Before Dispatch
-6317 5:04p 🔵 audio_pipeline.py + event_extractor.py — Full Dual-Path Processing Architecture
-6318 " 🟣 actions.py — schedule_imessage Action Added with SQLite Job Queue
-6319 " 🟣 action_runtime.py — schedule_imessage Wired into Proposal Pipeline
-6320 " 🔵 ambient.py — Proactive Calendar Nudge Loop with Departure Time + Context Synthesis
-6321 5:05p 🟣 schedule_imessage Fully Wired Across All Layers — Extractor, Policy, Audit, Audio Pipeline
-6322 " 🟣 trigger_server.py — Background Scheduler Loop + Ambient Tick Loop + Scheduled iMessage REST Endpoints
-6324 5:13p 🟣 AGIHouse — Relationship Edge Memory + Feedback Learning Added
-6325 " 🟣 AGIHouse — action_runtime.py Wires Feedback Learning on Confirm/Reject
-6326 " 🟣 AGIHouse — trigger_server.py Exposes /memory/edges and /memories Endpoints
-6327 " ✅ AGIHouse Tests — learn_from_proposal_feedback Mocked in action_runtime Tests
-6328 5:14p ✅ AGIHouse Tests — All confirm/reject Test Cases Fully Patched for learn_from_proposal_feedback
-6329 " ✅ AGIHouse Tests — confirm_proposal Response Asserts "learned" Key Presence
+6367 5:35p 🔵 AGIHouse — /memory/edges Confirms Confidence Boosting: 0.78 → 0.93 After Second Confirmation
+6368 5:36p 🔵 AGIHouse — Audit Summary Reveals 119 Real Events with Rich Suppression Reasons and Action Breakdown
+6369 " 🔵 AGIHouse — SQLite WAL Mode Files (state.db-shm, state.db-wal) Not Gitignored
+6370 " ✅ AGIHouse — .gitignore Updated to Cover SQLite WAL Companion Files (state.db-*)
+6371 5:38p ✅ AGIHouse — Final PR Commit e01bfb3: 2,488 Insertions Across 30 Files, All Changes Folded In
+6372 " ✅ AGIHouse — PR Branch Force-Pushed: Remote Updated from aed756f to e01bfb3
+6373 " 🔵 AGIHouse — /health Endpoint Returns ok=true with inbox_available=true Despite Gmail OAuth Warning
+6374 " 🔵 AGIHouse — Both Servers Live and Healthy; Only AGENTS.md Has Remaining Unstaged Changes
+6375 5:39p 🔵 AGIHouse — iMessage AppleScript Send Confirmed Working: "OK: sent" to +15551234567
+6376 " 🔵 AGIHouse — AppleScript Messages Introspection Blocked (-10000); Direct Send Works But Service Query Fails
+6377 5:40p 🟣 AGIHouse — imessage_send.py Gains SMS Fallback via AGIHOUSE_ALLOW_SMS_FALLBACK Env Var
+6378 " 🟣 AGIHouse — imessage_send.py SMS Fallback Validated: Live Send Returns "sent via imessage" + 2 Tests Pass
+6380 5:42p ✅ AGIHouse — actions.py: Demo Handle +15551234567 Hardcoded as Default Live iMessage Target
+6381 " ✅ AGIHouse README — Documents Hardcoded Demo Handle and contacts.json Replacement Warning
+6382 " ✅ AGIHouse contacts.json — Sanjay Sai Added as Demo Collaborator Contact
+6383 5:43p ✅ AGIHouse — Sanjay's Handle Added to DEMO_LIVE_IMESSAGE_HANDLES Allowlist in actions.py
+6384 " 🔴 AGIHouse Tests — test_send_passes_handle_and_text_as_args Fails: msg Changed from "sent" to "sent via imessage"
+6385 " ✅ AGIHouse — All 21 Tests Pass After imessage_send Test Fix; Full Validation Suite Green
+6386 " 🔴 AGIHouse Tests — test_imessage_send Updated for New SMS Fallback API Signature
+6387 5:44p ✅ AGIHouse — All 21 Tests Pass, Full Validation Suite Green After SMS Fallback Fixes
 
-Access 78k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 35k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

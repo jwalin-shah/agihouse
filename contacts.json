@@ -2,15 +2,17 @@
   {
     "name": "Tarun",
     "aliases": ["tarun", "tarun s"],
-    "phone": "+15551234567",
+    "phone": "+17168032645",
     "email": "tarun@example.com",
+    "service": "imessage",
     "context": "co-judge, expecting demo recording tonight"
   },
   {
     "name": "Sanjay Sai",
     "aliases": ["sanjay", "sanjay sai"],
-    "phone": "+15551234568",
+    "phone": "+17167309413",
     "email": "sanjay@example.com",
+    "service": "sms",
     "context": "demo collaborator; likely referent for 'we' during AGI House prep"
   },
   {

@@ -116,6 +116,11 @@ async def _start_background_tasks() -> None:
     _scheduled_task = asyncio.create_task(_scheduled_imessage_loop())
     if os.environ.get("AGIHOUSE_AMBIENT_TICK", "").strip().lower() in {"1", "true", "yes"}:
         _ambient_task = asyncio.create_task(_ambient_tick_loop())
+    try:
+        from imessage_watcher import start_watcher
+        start_watcher()
+    except Exception as e:
+        print(f"[trigger_server] imsg watcher failed to start: {e!r}", file=sys.stderr)
 
 
 @app.on_event("shutdown")
