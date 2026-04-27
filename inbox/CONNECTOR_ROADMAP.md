@@ -16,7 +16,7 @@ Target outcome:
 Inbox should be treated as four layers:
 
 1. Source adapters
-   Gmail, Calendar, Drive, Docs, Sheets, Tasks, iMessage, Notes, Reminders, GitHub.
+   Gmail, Calendar, Drive, Tasks, iMessage, Notes, Reminders, GitHub.
 
 2. Normalization layer
    Convert provider-specific payloads into stable Inbox objects with clear ownership and workflow metadata.
@@ -38,7 +38,7 @@ For Google Workspace, the default write account should be:
 This should be enforced in the backend via `INBOX_DEFAULT_GOOGLE_ACCOUNT`, not just documented in prompts.
 
 Rules:
-- all new Docs, Sheets, Drive folders, Tasks, and Calendars default to `jshah1331@gmail.com`
+- all new Drive folders, Tasks, and Calendars default to `jshah1331@gmail.com`
 - any write to another Google account must be explicit
 - objects returned from Google providers must include `owning_account`
 - replies and edits must route to the account that owns the object unless explicitly overridden
@@ -70,7 +70,6 @@ Examples:
 - `find_recruiter_threads`
 - `find_followups_due`
 - `create_google_task`
-- `create_google_doc_in_folder`
 - `preflight_google_write`
 - `route_gmail_reply`
 - `summarize_thread_actions`
@@ -151,7 +150,7 @@ Those choices should be encoded in connector policy and preflight rules.
 {
   "file_id": "...",
   "owning_account": "jshah1331@gmail.com",
-  "kind": "sheet",
+  "kind": "file",
   "name": "...",
   "folder_path": ["Job Hunt", "Applications"],
   "url": "...",
@@ -189,11 +188,9 @@ These are the tools the model should prefer over raw CRUD.
 - `create_workflow_event(kind, title, workflow?, start, end, account?)`
 - `find_schedule_conflicts(workflow?, date_range?)`
 
-### Drive / Docs / Sheets
+### Drive
 
 - `create_workflow_folder(workflow, parent?)`
-- `create_workflow_doc(title, workflow, folder?)`
-- `create_workflow_sheet(title, workflow, folder?)`
 - `move_object_to_workflow(file_id, workflow, destination?)`
 
 ## Phased Implementation
@@ -320,7 +317,7 @@ Write preflight framework.
 Deliverables:
 - preflight object schema
 - shared backend preflight helper
-- initial coverage for Docs, Sheets, Drive folders, Tasks, and Calendar events
+- initial coverage for Drive folders, Tasks, and Calendar events
 
 ### Milestone C
 

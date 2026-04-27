@@ -60,8 +60,6 @@ GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/gmail.settings.basic",
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/drive",
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/documents",
     "https://www.googleapis.com/auth/tasks",
 ]
 
@@ -184,33 +182,6 @@ class DriveFile:
     shared: bool = False
     web_link: str = ""
     parents: list[str] = field(default_factory=list)
-    account: str = ""
-
-
-@dataclass
-class SheetTab:
-    sheet_id: int
-    title: str
-    index: int
-    row_count: int
-    col_count: int
-
-
-@dataclass
-class Spreadsheet:
-    id: str
-    title: str
-    url: str
-    sheets: list[SheetTab] = field(default_factory=list)
-    account: str = ""
-
-
-@dataclass
-class Document:
-    id: str
-    title: str
-    url: str
-    mime_type: str = "application/vnd.google-apps.document"
     account: str = ""
 
 
@@ -441,10 +412,8 @@ def google_auth_all() -> tuple[
     dict[str, object],
     dict[str, object],
     dict[str, object],
-    dict[str, object],
-    dict[str, object],
 ]:
-    """Auth all accounts from tokens/ dir. Returns (gmail_svcs, cal_svcs, drive_svcs, sheets_svcs, docs_svcs, tasks_svcs)."""
+    """Auth all accounts from tokens/ dir. Returns (gmail_svcs, cal_svcs, drive_svcs, tasks_svcs)."""
     TOKENS_DIR.mkdir(exist_ok=True)
 
     # Migrate legacy token.json — if it's missing scopes, re-auth
@@ -469,8 +438,6 @@ def google_auth_all() -> tuple[
     gmail_svcs: dict[str, object] = {}
     cal_svcs: dict[str, object] = {}
     drive_svcs: dict[str, object] = {}
-    sheets_svcs: dict[str, object] = {}
-    docs_svcs: dict[str, object] = {}
     tasks_svcs: dict[str, object] = {}
 
     for token_path in sorted(TOKENS_DIR.glob("*.json")):
@@ -505,24 +472,12 @@ def google_auth_all() -> tuple[
             _log_service_failure("google_auth_all.drive_service", email=email)
 
         try:
-            sheets_svc = build("sheets", "v4", credentials=creds)
-            sheets_svcs[email] = sheets_svc
-        except Exception:  # logged below
-            _log_service_failure("google_auth_all.sheets_service", email=email)
-
-        try:
-            docs_svc = build("docs", "v1", credentials=creds)
-            docs_svcs[email] = docs_svc
-        except Exception:  # logged below
-            _log_service_failure("google_auth_all.docs_service", email=email)
-
-        try:
             tasks_svc = build("tasks", "v1", credentials=creds)
             tasks_svcs[email] = tasks_svc
         except Exception:  # logged below
             _log_service_failure("google_auth_all.tasks_service", email=email)
 
-    return gmail_svcs, cal_svcs, drive_svcs, sheets_svcs, docs_svcs, tasks_svcs
+    return gmail_svcs, cal_svcs, drive_svcs, tasks_svcs
 
 
 def add_google_account() -> str | None:
@@ -4098,499 +4053,9 @@ def drive_download(drive_service, file_id: str) -> tuple[bytes, str] | None:
         return None
 
 
-# ── Sheets ──────────────────────────────────────────────────────────────────
-
-
-def sheets_list(
-    drive_service: object, query: str = "", limit: int = 20, account: str = ""
-) -> list[Spreadsheet]:
-    """List spreadsheets from Drive. Returns list of Spreadsheet, empty on error."""
-    try:
-        q = "mimeType='application/vnd.google-apps.spreadsheet'"
-        if query:
-            q += f" and name contains '{query}'"
-        result = (
-            drive_service.files()
-            .list(q=q, pageSize=limit, fields="files(id, name, modifiedTime, webViewLink, owners)")
-            .execute()
-        )
-        spreadsheets = []
-        for file in result.get("files", []):
-            spreadsheets.append(
-                Spreadsheet(
-                    id=file["id"],
-                    title=file.get("name", ""),
-                    url=file.get("webViewLink", ""),
-                    sheets=[],
-                    account=account,
-                )
-            )
-        return spreadsheets
-    except Exception:  # logged below
-        _log_service_failure("sheets_list", query=query)
-        return []
-
-
-def sheets_get(sheets_service: object, spreadsheet_id: str) -> Spreadsheet | None:
-    """Get spreadsheet metadata including sheet tabs."""
-    try:
-        result = sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-        sheets_list = []
-        for sheet in result.get("sheets", []):
-            props = sheet.get("properties", {})
-            sheets_list.append(
-                SheetTab(
-                    sheet_id=props.get("sheetId", 0),
-                    title=props.get("title", ""),
-                    index=props.get("index", 0),
-                    row_count=props.get("gridProperties", {}).get("rowCount", 0),
-                    col_count=props.get("gridProperties", {}).get("columnCount", 0),
-                )
-            )
-        return Spreadsheet(
-            id=result.get("spreadsheetId", spreadsheet_id),
-            title=result.get("properties", {}).get("title", ""),
-            url=result.get("spreadsheetUrl", ""),
-            sheets=sheets_list,
-        )
-    except Exception:  # logged below
-        _log_service_failure("sheets_get", spreadsheet_id=spreadsheet_id)
-        return None
-
-
-def sheets_create(
-    sheets_service: object, title: str, sheets: list[str] | None = None
-) -> Spreadsheet | None:
-    """Create a new spreadsheet with optional sheet tabs."""
-    try:
-        requests = []
-        body = {
-            "properties": {"title": title},
-            "sheets": [{"properties": {"title": sheets[0] if sheets else "Sheet1"}}],
-        }
-        if sheets and len(sheets) > 1:
-            for i, sheet_title in enumerate(sheets[1:], start=1):
-                requests.append({"addSheet": {"properties": {"title": sheet_title, "index": i}}})
-
-        result = sheets_service.spreadsheets().create(body=body).execute()
-        spreadsheet_id = result.get("spreadsheetId", "")
-
-        if requests:
-            sheets_service.spreadsheets().batchUpdate(
-                spreadsheetId=spreadsheet_id, body={"requests": requests}
-            ).execute()
-
-        return sheets_get(sheets_service, spreadsheet_id)
-    except Exception:  # logged below
-        _log_service_failure("sheets_create", title=title)
-        return None
-
-
-def sheets_delete(drive_service: object, spreadsheet_id: str) -> bool:
-    """Soft-delete (trash) a spreadsheet."""
-    try:
-        drive_service.files().update(fileId=spreadsheet_id, body={"trashed": True}).execute()
-        return True
-    except Exception:  # logged below
-        _log_service_failure("sheets_delete", spreadsheet_id=spreadsheet_id)
-        return False
-
-
-def sheets_values_get(
-    sheets_service: object, spreadsheet_id: str, range_: str
-) -> list[list] | None:
-    """Read a range from a spreadsheet. Returns list[list] or None on error."""
-    try:
-        result = (
-            sheets_service.spreadsheets()
-            .values()
-            .get(spreadsheetId=spreadsheet_id, range=range_)
-            .execute()
-        )
-        return result.get("values", [])
-    except Exception:  # logged below
-        _log_service_failure("sheets_values_get", spreadsheet_id=spreadsheet_id, range_=range_)
-        return None
-
-
-def sheets_values_batch_get(
-    sheets_service: object, spreadsheet_id: str, ranges: list[str]
-) -> dict[str, list[list]] | None:
-    """Read multiple ranges. Returns dict[range: list[list]] or None on error."""
-    try:
-        result = (
-            sheets_service.spreadsheets()
-            .values()
-            .batchGet(spreadsheetId=spreadsheet_id, ranges=ranges)
-            .execute()
-        )
-        output = {}
-        for value_range in result.get("valueRanges", []):
-            range_key = value_range.get("range", "")
-            output[range_key] = value_range.get("values", [])
-        return output
-    except Exception:  # logged below
-        _log_service_failure("sheets_values_batch_get", spreadsheet_id=spreadsheet_id)
-        return None
-
-
-def sheets_values_update(
-    sheets_service: object,
-    spreadsheet_id: str,
-    range_: str,
-    values: list[list],
-    value_input: str = "USER_ENTERED",
-) -> dict | None:
-    """Update a range with values. Returns update stats or None on error."""
-    try:
-        result = (
-            sheets_service.spreadsheets()
-            .values()
-            .update(
-                spreadsheetId=spreadsheet_id,
-                range=range_,
-                valueInputOption=value_input,
-                body={"values": values},
-            )
-            .execute()
-        )
-        return result
-    except Exception:  # logged below
-        _log_service_failure("sheets_values_update", spreadsheet_id=spreadsheet_id, range_=range_)
-        return None
-
-
-def sheets_values_batch_update(
-    sheets_service: object,
-    spreadsheet_id: str,
-    data: list[dict],
-    value_input: str = "USER_ENTERED",
-) -> dict | None:
-    """Update multiple ranges. data = [{"range": "...", "values": [...]}, ...]."""
-    try:
-        result = (
-            sheets_service.spreadsheets()
-            .values()
-            .batchUpdate(
-                spreadsheetId=spreadsheet_id,
-                body={
-                    "valueInputOption": value_input,
-                    "data": data,
-                },
-            )
-            .execute()
-        )
-        return result
-    except Exception:  # logged below
-        _log_service_failure("sheets_values_batch_update", spreadsheet_id=spreadsheet_id)
-        return None
-
-
-def sheets_values_append(
-    sheets_service: object,
-    spreadsheet_id: str,
-    range_: str,
-    values: list[list],
-    value_input: str = "USER_ENTERED",
-) -> dict | None:
-    """Append rows to a range. Returns append stats or None on error."""
-    try:
-        result = (
-            sheets_service.spreadsheets()
-            .values()
-            .append(
-                spreadsheetId=spreadsheet_id,
-                range=range_,
-                valueInputOption=value_input,
-                body={"values": values},
-            )
-            .execute()
-        )
-        return result
-    except Exception:  # logged below
-        _log_service_failure("sheets_values_append", spreadsheet_id=spreadsheet_id, range_=range_)
-        return None
-
-
-def sheets_values_clear(sheets_service: object, spreadsheet_id: str, range_: str) -> bool:
-    """Clear a range."""
-    try:
-        sheets_service.spreadsheets().values().clear(
-            spreadsheetId=spreadsheet_id, range=range_
-        ).execute()
-        return True
-    except Exception:  # logged below
-        _log_service_failure("sheets_values_clear", spreadsheet_id=spreadsheet_id, range_=range_)
-        return False
-
-
-def sheets_add_sheet(
-    sheets_service: object,
-    spreadsheet_id: str,
-    title: str,
-    rows: int = 1000,
-    cols: int = 26,
-) -> SheetTab | None:
-    """Add a new sheet tab to a spreadsheet."""
-    try:
-        result = (
-            sheets_service.spreadsheets()
-            .batchUpdate(
-                spreadsheetId=spreadsheet_id,
-                body={
-                    "requests": [
-                        {
-                            "addSheet": {
-                                "properties": {
-                                    "title": title,
-                                    "gridProperties": {"rowCount": rows, "columnCount": cols},
-                                }
-                            }
-                        }
-                    ]
-                },
-            )
-            .execute()
-        )
-        # Extract new sheet info from reply
-        reply = result.get("replies", [{}])[0]
-        props = reply.get("addSheet", {}).get("properties", {})
-        return SheetTab(
-            sheet_id=props.get("sheetId", 0),
-            title=props.get("title", ""),
-            index=props.get("index", 0),
-            row_count=props.get("gridProperties", {}).get("rowCount", 0),
-            col_count=props.get("gridProperties", {}).get("columnCount", 0),
-        )
-    except Exception:  # logged below
-        _log_service_failure("sheets_add_sheet", spreadsheet_id=spreadsheet_id, title=title)
-        return None
-
-
-def sheets_delete_sheet(sheets_service: object, spreadsheet_id: str, sheet_id: int) -> bool:
-    """Delete a sheet tab by sheet_id."""
-    try:
-        sheets_service.spreadsheets().batchUpdate(
-            spreadsheetId=spreadsheet_id,
-            body={"requests": [{"deleteSheet": {"sheetId": sheet_id}}]},
-        ).execute()
-        return True
-    except Exception:  # logged below
-        _log_service_failure(
-            "sheets_delete_sheet", spreadsheet_id=spreadsheet_id, sheet_id=sheet_id
-        )
-        return False
-
-
-def sheets_rename_sheet(
-    sheets_service: object, spreadsheet_id: str, sheet_id: int, new_title: str
-) -> bool:
-    """Rename a sheet tab."""
-    try:
-        sheets_service.spreadsheets().batchUpdate(
-            spreadsheetId=spreadsheet_id,
-            body={
-                "requests": [
-                    {
-                        "updateSheetProperties": {
-                            "properties": {"sheetId": sheet_id, "title": new_title},
-                            "fields": "title",
-                        }
-                    }
-                ]
-            },
-        ).execute()
-        return True
-    except Exception:  # logged below
-        _log_service_failure(
-            "sheets_rename_sheet", spreadsheet_id=spreadsheet_id, sheet_id=sheet_id
-        )
-        return False
-
-
-def sheets_format(sheets_service: object, spreadsheet_id: str, requests: list[dict]) -> dict | None:
-    """Apply formatting via raw batchUpdate requests. For max flexibility."""
-    try:
-        result = (
-            sheets_service.spreadsheets()
-            .batchUpdate(
-                spreadsheetId=spreadsheet_id,
-                body={"requests": requests},
-            )
-            .execute()
-        )
-        return result
-    except Exception:  # logged below
-        _log_service_failure("sheets_format", spreadsheet_id=spreadsheet_id)
-        return None
-
-
-def sheets_copy_to(
-    sheets_service: object, spreadsheet_id: str, sheet_id: int, dest_spreadsheet_id: str
-) -> SheetTab | None:
-    """Copy a sheet to another spreadsheet."""
-    try:
-        result = (
-            sheets_service.spreadsheets()
-            .sheets()
-            .copyTo(
-                spreadsheetId=spreadsheet_id,
-                sheetId=sheet_id,
-                body={"destinationSpreadsheetId": dest_spreadsheet_id},
-            )
-            .execute()
-        )
-        props = result.get("properties", {})
-        return SheetTab(
-            sheet_id=props.get("sheetId", 0),
-            title=props.get("title", ""),
-            index=props.get("index", 0),
-            row_count=props.get("gridProperties", {}).get("rowCount", 0),
-            col_count=props.get("gridProperties", {}).get("columnCount", 0),
-        )
-    except Exception:  # logged below
-        _log_service_failure(
-            "sheets_copy_to",
-            spreadsheet_id=spreadsheet_id,
-            sheet_id=sheet_id,
-            dest_id=dest_spreadsheet_id,
-        )
-        return None
-
-
-# ── Docs ─────────────────────────────────────────────────────────────────────
-
-
-def docs_list(
-    drive_service: object, query: str = "", limit: int = 20, account: str = ""
-) -> list[Document]:
-    """List documents from Drive. Returns list of Document, empty on error."""
-    try:
-        q = "mimeType='application/vnd.google-apps.document'"
-        if query:
-            q += f" and name contains '{query}'"
-        result = (
-            drive_service.files()
-            .list(q=q, pageSize=limit, fields="files(id, name, modifiedTime, webViewLink, owners)")
-            .execute()
-        )
-        documents = []
-        for file in result.get("files", []):
-            documents.append(
-                Document(
-                    id=file["id"],
-                    title=file.get("name", ""),
-                    url=file.get("webViewLink", ""),
-                    account=account,
-                )
-            )
-        return documents
-    except Exception:  # logged below
-        _log_service_failure("docs_list", query=query)
-        return []
-
-
-def docs_get(docs_service: object, document_id: str) -> Document | None:
-    """Get document metadata and content."""
-    try:
-        result = docs_service.documents().get(documentId=document_id).execute()
-        return Document(
-            id=result.get("documentId", document_id),
-            title=result.get("title", ""),
-            url=f"https://docs.google.com/document/d/{document_id}/edit",
-        )
-    except Exception:  # logged below
-        _log_service_failure("docs_get", document_id=document_id)
-        return None
-
-
-def docs_create(docs_service: object, title: str) -> Document | None:
-    """Create a new Google Doc."""
-    try:
-        result = docs_service.documents().create(body={"title": title}).execute()
-        document_id = result.get("documentId", "")
-        return Document(
-            id=document_id,
-            title=result.get("title", title),
-            url=f"https://docs.google.com/document/d/{document_id}/edit",
-        )
-    except Exception:  # logged below
-        _log_service_failure("docs_create", title=title)
-        return None
-
-
-def docs_delete(drive_service: object, document_id: str) -> bool:
-    """Soft-delete (trash) a document."""
-    try:
-        drive_service.files().update(fileId=document_id, body={"trashed": True}).execute()
-        return True
-    except Exception:  # logged below
-        _log_service_failure("docs_delete", document_id=document_id)
-        return False
-
-
-def docs_export(
-    drive_service: object, document_id: str, mime_type: str = "text/plain"
-) -> bytes | None:
-    """Export document content. Supports: text/plain, application/pdf, text/html."""
-    try:
-        response = drive_service.files().export(fileId=document_id, mimeType=mime_type).execute()
-        return response
-    except Exception:  # logged below
-        _log_service_failure("docs_export", document_id=document_id, mime_type=mime_type)
-        return None
-
-
-def docs_insert_text(docs_service: object, document_id: str, text: str, index: int = 1) -> bool:
-    """Insert text into a document at specified index."""
-    try:
-        docs_service.documents().batchUpdate(
-            documentId=document_id,
-            body={
-                "requests": [
-                    {
-                        "insertText": {
-                            "text": text,
-                            "location": {"index": index},
-                        }
-                    }
-                ]
-            },
-        ).execute()
-        return True
-    except Exception:  # logged below
-        _log_service_failure("docs_insert_text", document_id=document_id)
-        return False
-
-
-def docs_get_text(docs_service: object, document_id: str) -> str | None:
-    """Get plain text content of a document."""
-    try:
-        result = docs_service.documents().get(documentId=document_id).execute()
-        text_parts = []
-        for elem in result.get("body", {}).get("content", []):
-            if "paragraph" in elem:
-                for run in elem["paragraph"].get("elements", []):
-                    if "textRun" in run:
-                        text_parts.append(run["textRun"].get("content", ""))
-            elif "table" in elem:
-                # Basic table extraction
-                for row in elem["table"].get("tableRows", []):
-                    for cell in row.get("tableCells", []):
-                        for content in cell.get("content", []):
-                            if "paragraph" in content:
-                                for run in content["paragraph"].get("elements", []):
-                                    if "textRun" in run:
-                                        text_parts.append(run["textRun"].get("content", ""))
-        return "".join(text_parts)
-    except Exception:  # logged below
-        _log_service_failure("docs_get_text", document_id=document_id)
-        return None
-
-
 # ── Whisper / Audio Config ──────────────────────────────────────────────────
 
-# MLX Whisper for chunk-based ambient transcription
+# MLX Whisper for chunk-based ambient transcription (local fallback)
 MLX_WHISPER_MODEL = "mlx-community/whisper-base.en-mlx"
 
 # whisper-stream C++ binary for real-time dictation
@@ -4603,6 +4068,23 @@ WHISPER_STREAM_MODEL = (
 SAMPLE_RATE = 16000
 CHUNK_SECS = 5  # ambient: transcribe every N seconds
 SILENCE_RMS_THRESHOLD = 0.01  # skip chunks below this RMS
+
+# Cloud ASR via OpenRouter chat completions (input_audio multimodal).
+# Default: cloud. Set ASR_PROVIDER=mlx to force the local mlx_whisper path.
+ASR_PROVIDER = os.environ.get("ASR_PROVIDER", "cloud").strip().lower() or "cloud"
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
+OPENROUTER_AUDIO_URL = os.environ.get(
+    "OPENROUTER_URL", "https://openrouter.ai/api/v1/chat/completions"
+).strip()
+# Multimodal model that accepts input_audio. gpt-4o-mini-audio-preview is the
+# cheapest first-party option; users can swap to e.g. google/gemini-2.5-flash.
+OPENROUTER_TRANSCRIPTION_MODEL = (
+    os.environ.get("OPENROUTER_TRANSCRIPTION_MODEL", "openai/gpt-4o-mini-audio-preview").strip()
+    or "openai/gpt-4o-mini-audio-preview"
+)
+OPENROUTER_TRANSCRIPTION_TIMEOUT = float(
+    os.environ.get("OPENROUTER_TRANSCRIPTION_TIMEOUT", "20")
+)
 
 # Vocabulary prompt — biases whisper toward these technical terms
 VOCAB_PROMPT = (
@@ -4636,13 +4118,141 @@ def sounddevice_available() -> bool:
         return False
 
 
+def cloud_asr_available() -> bool:
+    """Cloud ASR is usable when OpenRouter is configured."""
+    return bool(OPENROUTER_API_KEY)
+
+
 def ambient_available() -> tuple[bool, str]:
     """Return (available, reason). Reason is empty when available=True."""
     if not sounddevice_available():
         return False, "sounddevice not installed"
-    if not mlx_whisper_available():
-        return False, "mlx_whisper not installed"
+    if ASR_PROVIDER == "mlx":
+        if not mlx_whisper_available():
+            return False, "mlx_whisper not installed (ASR_PROVIDER=mlx)"
+        return True, ""
+    # cloud (default) — fall back to mlx if cloud is unconfigured
+    if not cloud_asr_available() and not mlx_whisper_available():
+        return False, "OPENROUTER_API_KEY not set and mlx_whisper unavailable"
     return True, ""
+
+
+# ── Audio encoding + cloud transcription helpers ────────────────────────────
+
+def _pcm_f32_to_wav_bytes(audio, sample_rate: int) -> bytes:
+    """Encode a float32 numpy array (-1.0..1.0) into mono 16-bit PCM WAV bytes."""
+    import io
+    import wave
+
+    import numpy as np
+
+    pcm16 = (np.clip(audio, -1.0, 1.0) * 32767.0).astype(np.int16)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)  # 16-bit
+        wf.setframerate(sample_rate)
+        wf.writeframes(pcm16.tobytes())
+    return buf.getvalue()
+
+
+def _transcribe_via_openrouter(audio, sample_rate: int) -> str:
+    """Cloud transcription via OpenRouter multimodal chat completion.
+
+    OpenRouter has no dedicated /audio/transcriptions; we send the chunk as
+    a base64-encoded WAV inside an `input_audio` content part on
+    /api/v1/chat/completions. Returns "" on any failure so the capture
+    loop keeps running.
+    """
+    if not OPENROUTER_API_KEY:
+        return ""
+
+    try:
+        wav_bytes = _pcm_f32_to_wav_bytes(audio, sample_rate)
+        b64 = base64.b64encode(wav_bytes).decode("ascii")
+        with httpx.Client(timeout=OPENROUTER_TRANSCRIPTION_TIMEOUT) as client:
+            resp = client.post(
+                OPENROUTER_AUDIO_URL,
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://github.com/even-realities/everything-evenhub",
+                    "X-Title": "G2 Ambient Copilot",
+                },
+                json={
+                    "model": OPENROUTER_TRANSCRIPTION_MODEL,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are a verbatim transcription engine. Output ONLY the "
+                                "spoken words from the audio, in English, with normal "
+                                "capitalization and punctuation. Do not add commentary, "
+                                "summaries, or labels. If the audio contains no intelligible "
+                                "speech, output an empty string."
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": "Transcribe this audio."},
+                                {
+                                    "type": "input_audio",
+                                    "input_audio": {"data": b64, "format": "wav"},
+                                },
+                            ],
+                        },
+                    ],
+                    "max_tokens": 400,
+                    "temperature": 0.0,
+                },
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+            choices = payload.get("choices") or []
+            if not choices:
+                logger.warning(f"[asr-cloud] empty choices: {payload}")
+                return ""
+            content = (choices[0].get("message") or {}).get("content") or ""
+            if isinstance(content, list):
+                # Some providers return content as a list of parts
+                content = " ".join(
+                    p.get("text", "") for p in content if isinstance(p, dict)
+                )
+            return content.strip()
+    except Exception as e:
+        logger.warning(f"[asr-cloud] transcription failed: {e}")
+        return ""
+
+
+def _transcribe_chunk(audio, sample_rate: int) -> str:
+    """Dispatch a captured audio chunk to the configured ASR backend."""
+    if ASR_PROVIDER == "mlx":
+        try:
+            import mlx_whisper
+
+            result = mlx_whisper.transcribe(
+                audio, path_or_hf_repo=MLX_WHISPER_MODEL, language="en"
+            )
+            return (result.get("text", "") or "").strip()  # type: ignore[union-attr]
+        except Exception as e:
+            logger.warning(f"[asr-mlx] transcription failed: {e}")
+            return ""
+
+    # cloud (default)
+    text = _transcribe_via_openrouter(audio, sample_rate)
+    if text or not mlx_whisper_available():
+        return text
+    # Fallback: cloud unavailable but mlx is — keep the system useful offline.
+    try:
+        import mlx_whisper
+
+        result = mlx_whisper.transcribe(
+            audio, path_or_hf_repo=MLX_WHISPER_MODEL, language="en"
+        )
+        return (result.get("text", "") or "").strip()  # type: ignore[union-attr]
+    except Exception:
+        return ""
 
 
 # ── Ambient Service ─────────────────────────────────────────────────────────
@@ -4655,8 +4265,16 @@ TRANSCRIPT_MAXLEN = 200  # max segments kept in rolling transcript
 class AmbientService:
     """Background ambient transcription service."""
 
-    def __init__(self, on_note: Callable[[str, str | None], None]):
+    def __init__(
+        self,
+        on_note: Callable[[str, str | None], None],
+        on_segment: Callable[[str], None] | None = None,
+    ):
         self._on_note = on_note
+        # Optional thread-safe callback fired for every transcribed segment.
+        # Used by the G2 transcript bus so agents react event-driven instead
+        # of polling /ambient/transcript.
+        self.on_segment: Callable[[str], None] | None = on_segment
         self._buffer: list[str] = []
         self._buffer_lock = threading.Lock()
         self._transcript: list[str] = []  # rolling transcript segments
@@ -4694,7 +4312,6 @@ class AmbientService:
         self._process_buffer()
 
     def _capture_loop(self) -> None:
-        import mlx_whisper
         import numpy as np
         import sounddevice as sd
 
@@ -4716,10 +4333,7 @@ class AmbientService:
                 if rms < SILENCE_RMS_THRESHOLD:
                     continue
 
-                result = mlx_whisper.transcribe(
-                    audio_flat, path_or_hf_repo=MLX_WHISPER_MODEL, language="en"
-                )
-                text = result.get("text", "").strip()  # type: ignore[union-attr]
+                text = _transcribe_chunk(audio_flat, SAMPLE_RATE)
                 if text:
                     with self._buffer_lock:
                         self._buffer.append(text)
@@ -4727,6 +4341,17 @@ class AmbientService:
                         self._transcript.append(text)
                         if len(self._transcript) > TRANSCRIPT_MAXLEN:
                             self._transcript = self._transcript[-TRANSCRIPT_MAXLEN:]
+                    # Fire the per-segment callback OUTSIDE the locks so a
+                    # slow subscriber can't stall capture.
+                    cb = self.on_segment
+                    if cb is not None:
+                        try:
+                            cb(text)
+                        except Exception:
+                            _log_service_failure(
+                                "AmbientService.on_segment",
+                                chunk_secs=CHUNK_SECS,
+                            )
 
             except Exception:  # logged below
                 _log_service_failure(

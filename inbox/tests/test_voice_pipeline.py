@@ -176,15 +176,45 @@ class TestAmbientAvailable:
         assert "sounddevice" in reason
 
     def test_unavailable_when_mlx_whisper_missing(self):
+        """In ASR_PROVIDER=mlx mode, missing mlx_whisper means unavailable."""
         from services import ambient_available
 
         with (
             patch("services.sounddevice_available", return_value=True),
             patch("services.mlx_whisper_available", return_value=False),
+            patch("services.ASR_PROVIDER", "mlx"),
         ):
             ok, reason = ambient_available()
         assert ok is False
         assert "mlx_whisper" in reason
+
+    def test_available_in_cloud_mode_without_mlx(self):
+        """ASR_PROVIDER=cloud + OpenRouter key set → available even w/o mlx."""
+        from services import ambient_available
+
+        with (
+            patch("services.sounddevice_available", return_value=True),
+            patch("services.mlx_whisper_available", return_value=False),
+            patch("services.ASR_PROVIDER", "cloud"),
+            patch("services.cloud_asr_available", return_value=True),
+        ):
+            ok, reason = ambient_available()
+        assert ok is True
+        assert reason == ""
+
+    def test_unavailable_when_neither_backend_works(self):
+        """Cloud unconfigured AND mlx missing → unavailable."""
+        from services import ambient_available
+
+        with (
+            patch("services.sounddevice_available", return_value=True),
+            patch("services.mlx_whisper_available", return_value=False),
+            patch("services.ASR_PROVIDER", "cloud"),
+            patch("services.cloud_asr_available", return_value=False),
+        ):
+            ok, reason = ambient_available()
+        assert ok is False
+        assert "OPENROUTER_API_KEY" in reason
 
 
 # ── Server endpoint tests ─────────────────────────────────────────────────────
@@ -197,7 +227,7 @@ def server_client():
     with (
         patch.dict(os.environ, {"INBOX_SERVER_TOKEN": ""}, clear=False),
         patch("inbox_server.init_contacts", return_value=0),
-        patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+        patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
         patch("inbox_server.load_voice_config", return_value={"ambient_autostart": False}),
     ):
         from inbox_server import app, state
@@ -206,7 +236,6 @@ def server_client():
         state.gmail_services = {}
         state.cal_services = {}
         state.drive_services = {}
-        state.sheets_services = {}
         state.ambient = AmbientService(on_note=lambda r, s: None)
         state.dictation = DictationService()
         from fastapi.testclient import TestClient
@@ -351,7 +380,7 @@ class TestAmbientAutostart:
         with (
             patch.dict(os.environ, {"INBOX_DISABLE_AMBIENT": ""}, clear=False),
             patch("inbox_server.init_contacts", return_value=0),
-            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
             patch("inbox_server.load_voice_config", return_value={"ambient_autostart": True}),
             patch("inbox_server.ambient_available", return_value=(True, "")),
             patch.object(state.ambient, "start", side_effect=mock_start),
@@ -369,7 +398,7 @@ class TestAmbientAutostart:
 
         with (
             patch("inbox_server.init_contacts", return_value=0),
-            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
             patch("inbox_server.load_voice_config", return_value={"ambient_autostart": True}),
             patch(
                 "inbox_server.ambient_available", return_value=(False, "sounddevice not installed")
@@ -386,7 +415,7 @@ class TestAmbientAutostart:
 
         with (
             patch("inbox_server.init_contacts", return_value=0),
-            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
             patch("inbox_server.load_voice_config", return_value={"ambient_autostart": False}),
             patch("inbox_server.ambient_available", return_value=(True, "")),
         ):

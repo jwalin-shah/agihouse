@@ -17,7 +17,7 @@ def client():
     with (
         patch.dict(os.environ, {"INBOX_SERVER_TOKEN": ""}, clear=False),
         patch("inbox_server.init_contacts", return_value=0),
-        patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+        patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
         patch("inbox_server.load_voice_config", return_value={"ambient_autostart": False}),
     ):
         from inbox_server import app, state
@@ -26,7 +26,6 @@ def client():
         state.gmail_services = {}
         state.cal_services = {}
         state.drive_services = {}
-        state.sheets_services = {}
         # Reset ambient/dictation to real instances so tests can inspect internals
         state.ambient = AmbientService(on_note=lambda r, s: None)
         state.dictation = DictationService()
@@ -412,7 +411,6 @@ class TestVoicePipelineEndpoints:
     def test_no_drive_account_errors(self, client):
         c, state = client
         state.drive_services = {}
-        state.sheets_services = {}
         resp = c.get("/drive/files/f1")
         assert resp.status_code == 404
 
@@ -466,7 +464,6 @@ class TestVoicePipelineEndpoints:
     def test_download_no_drive_account(self, client):
         c, state = client
         state.drive_services = {}
-        state.sheets_services = {}
         resp = c.get("/drive/files/f1/download")
         assert resp.status_code == 404
 

@@ -31,6 +31,8 @@ for mod in [
     "outlines.models",
     "outlines.generate",
     "Quartz",
+    "silero_vad",
+    "torch",
 ]:
     _stub_module(mod)
 

@@ -1,7 +1,7 @@
 # Inbox — Project Context
 
 ## What this is
-A terminal TUI (Python + Textual + Rich) that unifies iMessage, Gmail, Google Calendar, Google Sheets, and Apple Notes into one inbox. Client-server architecture: a local FastAPI server handles all data access, the TUI is a thin HTTP client. Agents can also hit the server API directly.
+A terminal TUI (Python + Textual + Rich) that unifies iMessage, Gmail, Google Calendar, Google Drive, and Apple Notes into one inbox. Client-server architecture: a local FastAPI server handles all data access, the TUI is a thin HTTP client. Agents can also hit the server API directly.
 
 ## Run it
 ```bash
@@ -77,7 +77,7 @@ Rules:
 
 ## Architecture
 ```
-services.py       — data access layer (iMessage, Gmail, Calendar, Sheets, Docs, Notes, Reminders, GitHub, Drive, auth, LLM, audio)
+services.py       — data access layer (iMessage, Gmail, Calendar, Notes, Reminders, GitHub, Drive, auth, LLM, audio)
 inbox_server.py   — FastAPI server wrapping services.py (port 9849)
 inbox_client.py   — sync HTTP client for the server API
 mcp_backend.py    — MCP server backend for Claude integration
@@ -150,28 +150,6 @@ GET  /drive/files/{id}?account=...
 POST /drive/upload  (multipart: file + folder_id + account)
 POST /drive/folder  {"name", "parent_id", "account"}
 DELETE /drive/files/{id}?account=...
-GET  /sheets?q=...&limit=20&account=...
-POST /sheets  {"title", "sheets", "account"}
-GET  /sheets/{id}
-DELETE /sheets/{id}?account=...
-GET  /sheets/{id}/values/{range}?account=...
-PUT  /sheets/{id}/values/{range}?account=...  {"values": [[...]], "value_input": "USER_ENTERED"}
-POST /sheets/{id}/values/{range}/append?account=...  {"values": [[...]]}
-DELETE /sheets/{id}/values/{range}?account=...
-POST /sheets/{id}/values/batch-get?account=...  {"ranges": [...]}
-POST /sheets/{id}/values/batch-update?account=...  {"data": [...], "value_input": "USER_ENTERED"}
-POST /sheets/{id}/tabs?account=...  {"title", "rows", "cols"}
-DELETE /sheets/{id}/tabs/{sheet_id}?account=...
-PATCH /sheets/{id}/tabs/{sheet_id}?account=...&title=NewTitle
-POST /sheets/{id}/tabs/{sheet_id}/copy?account=...  {"dest_spreadsheet_id"}
-POST /sheets/{id}/format?account=...  {"requests": [...]}
-GET  /docs?q=...&limit=20&account=...
-POST /docs  {"title", "account"}
-GET  /docs/{id}
-DELETE /docs/{id}?account=...
-GET  /docs/{id}/text
-POST /docs/{id}/text  {"text", "index"}
-GET  /docs/{id}/export?format=text/plain|application/pdf|text/html&account=...
 POST /ambient/start
 POST /ambient/stop
 GET  /ambient/status
@@ -219,22 +197,6 @@ POST /notifications/test  {"title", "body"}
 - Tracks `recurring_event_id` to support updates to recurring series
 - Multi-account: queries all authed accounts on refresh
 
-## Google Sheets
-- Uses the same OAuth token as Gmail/Calendar (full `spreadsheets` scope added)
-- Full CRUD on spreadsheets: create, list, get metadata, trash (recoverable)
-- **Range operations**: read (A1 notation), write, append, clear, batch read/write
-- **Sheet tab management**: add, delete, rename, copy to another spreadsheet
-- **Formatting**: raw `batchUpdate` requests for cell formatting, borders, colors, formulas
-- Multi-account: routes by `account` param, queries all accounts for list
-- Agents can perform any operation available in Sheets API (values, formatting, tabs, formulas)
-- All mutations return operation stats (cells updated, etc.)
-
-## Google Docs
-- Uses the same OAuth token as Gmail/Calendar (full `documents` scope added)
-- Create, read, update, delete documents
-- **Text operations**: insert and append text
-- Multi-account: routes by `account` param, queries all accounts for list
-
 ## Google Drive
 - Uses the same OAuth token as Gmail/Calendar (full `drive` scope)
 - Upload files, create folders, list/search/delete files
@@ -266,8 +228,7 @@ POST /notifications/test  {"title", "body"}
 - Legacy `token.json` auto-migrates to `tokens/` on first run
 - All accounts queried on refresh, contacts tagged with `gmail_account`
 - Sends route through the correct account's service
-- Scopes: `gmail.readonly` + `gmail.send` + `calendar` + `drive` + `spreadsheets` + `documents` (full read/write)
-- **Note**: New `documents` scope added for Docs integration; users must re-auth once via `/accounts/reauth`
+- Scopes: `gmail.readonly` + `gmail.send` + `calendar` + `drive` + `tasks`
 - Token locking via `token.json.lock` prevents concurrent access conflicts
 - **Account routing**: Write endpoints use account-specific service helpers (_get_cal_service_for_account, _get_drive_service_for_account, etc.) with fallback logic when account not specified
 
@@ -318,7 +279,7 @@ POST /notifications/test  {"title", "body"}
 - **AddressBook**: `~/Library/Application Support/AddressBook/Sources/*/AddressBook-v22.abcddb`
 - **Apple Notes**: `~/Library/Group Containers/group.com.apple.notes/NoteStore.sqlite`
 - **Apple Reminders**: `~/Library/Group Containers/group.com.apple.reminders/Container_v1/Stores/Data-*.sqlite`
-- **Gmail/Calendar/Drive/Sheets/Docs**: Google API via OAuth tokens in `tokens/` (token locking via `token.json.lock`)
+- **Gmail/Calendar/Drive**: Google API via OAuth tokens in `tokens/` (token locking via `token.json.lock`)
 - **GitHub**: REST API via personal access token in `github_token.txt`
 
 ## Testing

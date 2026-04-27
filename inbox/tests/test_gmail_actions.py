@@ -18,14 +18,13 @@ def client():
     with (
         patch.dict(os.environ, {"INBOX_SERVER_TOKEN": ""}, clear=False),
         patch("inbox_server.init_contacts", return_value=0),
-        patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+        patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
     ):
         from inbox_server import app, state
 
         state.gmail_services = {}
         state.cal_services = {}
         state.drive_services = {}
-        state.sheets_services = {}
         with TestClient(app) as c:
             yield c, state
 
@@ -38,7 +37,7 @@ def client_with_gmail():
     with (
         patch.dict(os.environ, {"INBOX_SERVER_TOKEN": ""}, clear=False),
         patch("inbox_server.init_contacts", return_value=0),
-        patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+        patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
     ):
         from inbox_server import app, state
 
@@ -48,7 +47,6 @@ def client_with_gmail():
             state.gmail_services = {"test@gmail.com": mock_svc}
             state.cal_services = {}
             state.drive_services = {}
-            state.sheets_services = {}
             state.conv_cache = {}
             yield c, state, mock_svc
 

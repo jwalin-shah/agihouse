@@ -12,14 +12,12 @@ from fastapi.testclient import TestClient
 from services import (
     CalendarEvent,
     Contact,
-    Document,
     DriveFile,
     GitHubNotification,
     GoogleTask,
     Msg,
     Note,
     Reminder,
-    Spreadsheet,
     ThreadSummary,
 )
 
@@ -35,14 +33,13 @@ def client():
     with (
         patch.dict(os.environ, {"INBOX_SERVER_TOKEN": ""}, clear=False),
         patch("inbox_server.init_contacts", return_value=0),
-        patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+        patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
         TestClient(inbox_server.app, raise_server_exceptions=False) as c,
     ):
         # Reset state after lifespan has run (lifespan sets from mocked return)
         inbox_server.state.gmail_services = {}
         inbox_server.state.cal_services = {}
         inbox_server.state.drive_services = {}
-        inbox_server.state.sheets_services = {}
         inbox_server.state.conv_cache = {}
         inbox_server.state.events_cache = []
         # Replace ambient/dictation with mocks for testing
@@ -226,7 +223,7 @@ class TestAuth:
         with (
             patch.dict(os.environ, {"INBOX_SERVER_TOKEN": "secret-token"}, clear=False),
             patch("inbox_server.init_contacts", return_value=0),
-            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
             TestClient(inbox_server.app, raise_server_exceptions=False) as client,
         ):
             resp = client.get("/health")
@@ -238,7 +235,7 @@ class TestAuth:
         with (
             patch.dict(os.environ, {"INBOX_SERVER_TOKEN": "secret-token"}, clear=False),
             patch("inbox_server.init_contacts", return_value=0),
-            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
             TestClient(inbox_server.app, raise_server_exceptions=False) as client,
         ):
             resp = client.get("/health", headers={"Authorization": "Bearer secret-token"})
@@ -250,7 +247,7 @@ class TestAuth:
         with (
             patch.dict(os.environ, {"INBOX_SERVER_TOKEN": "secret-token"}, clear=False),
             patch("inbox_server.init_contacts", return_value=0),
-            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
             TestClient(inbox_server.app, raise_server_exceptions=False) as client,
         ):
             resp = client.get("/health", headers={"X-API-Key": "secret-token"})
@@ -263,7 +260,7 @@ class TestLifespanCleanup:
 
         with (
             patch("inbox_server.init_contacts", return_value=0),
-            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {}, {}, {})),
+            patch("inbox_server.google_auth_all", return_value=({}, {}, {}, {})),
             patch("inbox_server.close_sqlite_connections") as mock_close,
             TestClient(inbox_server.app, raise_server_exceptions=False),
         ):
@@ -1564,42 +1561,6 @@ class TestPhase4:
         mock_create.assert_called_once()
         _, kwargs = mock_create.call_args
         assert kwargs.get("parent_id", "") == ""
-
-    @patch("inbox_server.docs_create")
-    def test_workflow_doc_endpoint(self, mock_create, client):
-        import inbox_server
-
-        inbox_server.state.docs_services = {"me@gmail.com": MagicMock()}
-        mock_create.return_value = Document(
-            id="doc1",
-            title="Job Applications",
-            url="https://docs.google.com/document/d/doc1/edit",
-            mime_type="application/vnd.google-apps.document",
-        )
-        resp = client.post(
-            "/docs/workflow-doc", json={"title": "Job Applications", "workflow": "job_hunt"}
-        )
-        assert resp.status_code == 200
-        assert resp.json()["id"] == "doc1"
-
-    @patch("inbox_server.sheets_create")
-    def test_workflow_sheet_endpoint(self, mock_create, client):
-        import inbox_server
-
-        inbox_server.state.sheets_services = {"me@gmail.com": MagicMock()}
-        mock_create.return_value = Spreadsheet(
-            id="sh1",
-            title="Finance Tracker",
-            url="https://docs.google.com/spreadsheets/d/sh1/edit",
-            sheets=[],
-            account="me@gmail.com",
-        )
-        resp = client.post(
-            "/sheets/workflow-sheet", json={"title": "Finance Tracker", "workflow": "finance"}
-        )
-        assert resp.status_code == 200
-        assert resp.json()["id"] == "sh1"
-
 
 class TestPhase5:
     def test_thread_summary_out_has_rank_brief_rich(self, client):

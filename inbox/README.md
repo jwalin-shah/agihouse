@@ -1,6 +1,6 @@
 # Inbox — Unified Communication & Productivity TUI
 
-A privacy-first terminal UI that consolidates iMessage, Gmail, Google Calendar, Google Sheets, Apple Notes, Apple Reminders, GitHub notifications, and Google Drive into a single keyboard-driven interface.
+A privacy-first terminal UI that consolidates iMessage, Gmail, Google Calendar, Apple Notes, Apple Reminders, GitHub notifications, and Google Drive into a single keyboard-driven interface.
 
 ## Features
 
@@ -8,7 +8,6 @@ A privacy-first terminal UI that consolidates iMessage, Gmail, Google Calendar, 
 - **iMessage** — Direct access to SMS/iChat conversations with contact resolution
 - **Gmail** — Full inbox, thread support, unsubscribe utilities
 - **Google Calendar** — Event viewing and quick event creation ("Meeting 2pm-3pm @ Office")
-- **Google Sheets** — Full spreadsheet API access: create, read/write ranges, manage tabs, add formulas
 - **Apple Notes** — Direct SQLite access to on-device notes
 - **Apple Reminders** — Multi-account reminders (iCloud, local) with completion tracking
 - **GitHub** — Notifications, PR review requests, notification management
@@ -84,18 +83,6 @@ POST /github/notifications/read-all
 GET  /github/pulls?repo=owner/name
 ```
 
-**Google Sheets:**
-```
-GET  /sheets?q=...&limit=20&account=...
-POST /sheets  {"title", "sheets", "account"}
-GET  /sheets/{id}
-GET  /sheets/{id}/values/{range}?account=...
-PUT  /sheets/{id}/values/{range}  {"values": [[...]], "value_input": "USER_ENTERED"}
-POST /sheets/{id}/values/{range}/append
-POST /sheets/{id}/tabs  {"title", "rows", "cols"}
-POST /sheets/{id}/format  {"requests": [...]}
-```
-
 **Google Drive:**
 ```
 GET  /drive/files?q=...&limit=20&account=...
@@ -132,7 +119,7 @@ POST /autocomplete  {"draft", "messages", "max_tokens", "temperature"}
 ## Architecture
 
 ```
-services.py          — Data layer (Gmail, Calendar, Sheets, Drive, iMessage, Notes, Reminders, GitHub)
+services.py          — Data layer (Gmail, Calendar, Drive, iMessage, Notes, Reminders, GitHub)
 inbox_server.py      — FastAPI wrapper (port 9849)
 inbox_client.py      — HTTP client library
 inbox.py             — Textual TUI with tab state preservation
@@ -146,7 +133,7 @@ ambient_daemon.py    — Background audio capture + ASR + extraction
 - Notes: `~/Library/Group Containers/group.com.apple.notes/NoteStore.sqlite`
 - Reminders: `~/Library/Group Containers/group.com.apple.reminders/Container_v1/Stores/Data-*.sqlite`
 - AddressBook: `~/Library/Application Support/AddressBook/Sources/*/AddressBook-v22.abcddb`
-- Gmail/Calendar/Sheets/Drive: Google OAuth
+- Gmail/Calendar/Drive: Google OAuth
 - GitHub: Personal access token
 
 ## Development

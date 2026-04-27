@@ -16,8 +16,18 @@ function defaultWsUrl() {
   return `${protocol}//${host}:9849/g2/ws`
 }
 
+function defaultHttpBaseUrl() {
+  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:'
+  const host = window.location.hostname || 'localhost'
+  return `${protocol}//${host}:9849`
+}
+
 const configuredWsUrl = (import.meta.env.VITE_INBOX_WS_URL ?? '').trim()
 const WS_URL = configuredWsUrl || defaultWsUrl()
+
+const configuredHttpBase = (import.meta.env.VITE_INBOX_HTTP_BASE ?? '').trim()
+const HTTP_BASE_URL = configuredHttpBase.replace(/\/$/, '') || defaultHttpBaseUrl()
+const G2_AUDIO_UPLOAD_ENABLED = (import.meta.env.VITE_G2_AUDIO_UPLOAD ?? '') === '1'
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -33,6 +43,34 @@ let previewLine2El: HTMLElement | null = null
 const imuWindow: number[] = []
 const IMU_WINDOW_SIZE = 10
 const FOCUSED_VARIANCE_THRESHOLD = 0.02
+
+// G2-mic audio upload — buffer ~1s of 16 kHz s16le mono PCM (= 32 KB) and
+// POST to /g2/audio so the laptop can run VAD + cloud Whisper + extractor.
+// Off by default; enable with VITE_G2_AUDIO_UPLOAD=1 in the build env.
+const AUDIO_FLUSH_BYTES = 32_000
+const audioBuffer: Uint8Array[] = []
+let audioBufferedBytes = 0
+
+async function flushAudio() {
+  if (audioBufferedBytes === 0) return
+  const out = new Uint8Array(audioBufferedBytes)
+  let off = 0
+  for (const chunk of audioBuffer) {
+    out.set(chunk, off)
+    off += chunk.byteLength
+  }
+  audioBuffer.length = 0
+  audioBufferedBytes = 0
+  try {
+    await fetch(`${HTTP_BASE_URL}/g2/audio`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: out,
+    })
+  } catch (err) {
+    console.error('[g2] audio POST failed:', err)
+  }
+}
 
 // ── State persistence (localStorage) ──────────────────────────────────────────
 
@@ -274,6 +312,15 @@ async function main() {
 
   // Subscribe to all events
   const unsubscribe = bridge.onEvenHubEvent((event) => {
+    // G2 mic PCM → buffer + POST to /g2/audio (only if upload feature is on)
+    if (G2_AUDIO_UPLOAD_ENABLED && event.audioEvent?.audioPcm) {
+      const pcm = event.audioEvent.audioPcm
+      audioBuffer.push(pcm)
+      audioBufferedBytes += pcm.byteLength
+      if (audioBufferedBytes >= AUDIO_FLUSH_BYTES) flushAudio()
+      return
+    }
+
     // IMU data → attention state
     if (event.sysEvent?.imuData) {
       const { x = 0, y = 0, z = 0 } = event.sysEvent.imuData
@@ -292,6 +339,13 @@ async function main() {
       if (lastLine1) renderHUD(lastLine1, lastLine2)
     }
   })
+
+  // Audio control — only fires when the G2-mic upload path is enabled.
+  if (G2_AUDIO_UPLOAD_ENABLED) {
+    bridge.audioControl(true).catch((err) => {
+      console.warn('[g2] audioControl(true) failed', err)
+    })
+  }
 
   // Wearing detection → notify server when glasses go on/off
   bridge.onDeviceStatusChanged((status) => {

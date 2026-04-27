@@ -13,7 +13,7 @@ Run the private inbox backend and the MCP layers separately:
 
 1. `inbox_server.py`
    - Private backend
-   - Holds Gmail/Calendar/Drive/Sheets tokens
+   - Holds Gmail/Calendar/Drive tokens
    - Keep this on `127.0.0.1:9849`
 
 2. `mcp_server.py`
