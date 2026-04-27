@@ -1,0 +1,33 @@
+{
+  "package_id": "com.presence.g2",
+  "edition": "202601",
+  "name": "Presence",
+  "version": "0.1.0",
+  "min_app_version": "2.0.0",
+  "min_sdk_version": "0.0.10",
+  "entrypoint": "index.html",
+  "permissions": [
+    {
+      "name": "network",
+      "desc": "Connects to the local Presence memory backend during private testing.",
+      "whitelist": [
+        "https://formerly-craps-retreat-lifetime.trycloudflare.com",
+        "http://192.168.3.242:8787",
+        "http://192.168.3.242:8790"
+      ]
+    },
+    {
+      "name": "g2-microphone",
+      "desc": "Captures speech snippets for private memory creation."
+    },
+    {
+      "name": "phone-microphone",
+      "desc": "Fallback microphone capture when testing without G2 mic input."
+    },
+    {
+      "name": "location",
+      "desc": "Optional coarse context for memory notes."
+    }
+  ],
+  "supported_languages": ["en"]
+}
