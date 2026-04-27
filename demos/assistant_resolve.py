@@ -10,9 +10,11 @@ Rules:
 Output: a Resolver with .canon(handle) -> str (canonical id) and a debug map.
 """
 from __future__ import annotations
-import sqlite3, glob, re, os
+import sqlite3
+import glob
+import re
+import os
 from dataclasses import dataclass, field
-from pathlib import Path
 
 CONTACTS_GLOB = os.path.expanduser(
     "~/Library/Application Support/AddressBook/Sources/*/AddressBook-v22.abcddb"

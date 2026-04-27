@@ -9,20 +9,41 @@
 mode: live          # live | dry_run    (dry_run logs everything, suppresses notify)
 log_path: audit.log
 
-# --- read-only by construction -------------------------------------------
-# Actions the agent is ALLOWED to take. Anything not here is denied.
+# --- allowed surface -----------------------------------------------------
+# Actions the agent is ALLOWED to consider. Write-shaped actions still become
+# proposals unless listed in execution.auto_fire_actions below.
 allowed_actions:
   - recall          # surface a person-memory digest on HUD
   - departure_nudge # "leave in N min" + context whisper for upcoming event
   - commitment_log  # note an in-conversation commitment to a local file
+  - send_imessage
+  - schedule_imessage
+  - create_reminder
+  - add_calendar_event
+  - add_note
+  - list_reminders
+  - list_calendar
+  - list_notes
+  - list_memories
+  - remember_fact
+  - answer_question
 
 # Explicitly denied — listed to make the no-go surface visible to a reviewer.
 denied_actions:
   - send_email
-  - send_imessage
-  - calendar_write
   - delete_anything
   - share_externally
+
+# --- execution -----------------------------------------------------------
+# Only these actions execute immediately after policy approval. All other
+# allowed actions are shown as HUD proposals for the wearer to decide on.
+execution:
+  auto_fire_actions:
+    - list_reminders
+    - list_calendar
+    - list_notes
+    - list_memories
+    - answer_question
 
 # --- restraint rules -----------------------------------------------------
 restraint:

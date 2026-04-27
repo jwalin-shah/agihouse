@@ -7,6 +7,13 @@
     "context": "co-judge, expecting demo recording tonight"
   },
   {
+    "name": "Sanjay Sai",
+    "aliases": ["sanjay", "sanjay sai"],
+    "phone": "+15551234568",
+    "email": "sanjay@example.com",
+    "context": "demo collaborator; likely referent for 'we' during AGI House prep"
+  },
+  {
     "name": "Rohith Dara",
     "aliases": ["rohith", "rohith dara"],
     "phone": "+15555550111",

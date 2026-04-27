@@ -36,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from audit import gate  # noqa: E402
 from output import notify  # noqa: E402
 from recall import recall  # noqa: E402
-from tl_recall import maybe_tl_oneliner  # noqa: E402
+from tensor_recall import maybe_tensor_oneliner  # noqa: E402
 
 
 # --- Phrase patterns ------------------------------------------------------
@@ -137,9 +137,9 @@ def make_on_note(gmail_svcs: dict, cal_svcs: dict | None):
         # Match before person-name triggers so "any followups about Daniel" doesn't
         # accidentally route to recall(Daniel).
         try:
-            tl_line = maybe_tl_oneliner(raw_transcript)
+            tl_line = maybe_tensor_oneliner(raw_transcript)
         except Exception as e:
-            print(f"[voice] tl_recall failed: {e!r}", file=sys.stderr, flush=True)
+            print(f"[voice] tensor_recall failed: {e!r}", file=sys.stderr, flush=True)
             tl_line = None
         if tl_line:
             print(f"[voice] phrase='tensor-logic' -> {tl_line[:80]}…", flush=True)

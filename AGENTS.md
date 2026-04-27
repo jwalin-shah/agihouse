@@ -52,6 +52,7 @@ G2 mic ─── PCM ───▶ /audio (trigger_server.py)
 |---|---|---|
 | `contacts.json` | seed | Known people. Used for handle resolution |
 | `calendar.json` | seed + state | Sandbox calendar; live-mutated by add_calendar_event |
+| `state.db` | gitignored | SQLite action history + sandbox reminders/calendar/notes/memories |
 | `reminders.json` | gitignored | Mirror of macOS Reminders writes |
 | `notes.json` | gitignored | Sandbox notes |
 | `memories.jsonl` | gitignored | Append-only durable observations |
@@ -112,4 +113,41 @@ cd g2-renderer && ./node_modules/.bin/evenhub qr --url http://<lan-ip>:5173
 - **Speaker grounding** — no diarization yet. Amplitude gate + first-person filter catches most non-wearer speech but isn't reliable. Voice fingerprinting (resemblyzer) is the proper fix.
 - **Gmail OAuth** — token expired; re-auth via inbox to enable Gmail/Calendar reads.
 - **Lens font glyphs** — 🎙 (U+1F399) and ⏰ (U+23F0) sometimes warn; most other emojis render fine.
-- **TL recall** — `tl_recall.py` exists but the `assistant_store.pt` tensor isn't built. Dead path.
+- **Tensor recall** — `tensor_recall.py` is active only when `demos/assistant_store.pt` has been built.
+
+
+<claude-mem-context>
+# Memory Context
+
+# [agihouse] recent context, 2026-04-26 5:14pm PDT
+
+Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
+Format: ID TIME TYPE TITLE
+Fetch details: get_observations([IDs]) | Search: mem-search skill
+
+Stats: 20 obs (6,610t read) | 77,589t work | 91% savings
+
+### Apr 26, 2026
+6309 5:01p 🟣 assistant_seed.py — Distractor Messages Added to Tensor Demo Dataset
+6310 " ✅ docs/DEMO_RUNBOOK.md Created — Stage Script + What Not To Add
+6311 " 🔵 One Cosmetic tl_recall Reference Remains in voice_trigger.py Error String
+6312 5:02p ✅ voice_trigger.py — Last tl_recall String Reference Renamed to tensor_recall
+6313 " ⚖️ AGIHouse PR Ready — All Checks Pass, Zero tl_recall References in Live Code
+6314 " ⚖️ AGIHouse Codebase Fully Clean — Zero tl_recall References Anywhere, PR-Ready
+6315 " 🔵 contacts.json — 4 Demo Contacts with Aliases + Context
+6316 5:03p 🔵 audio_pipeline.py Performs Contact Resolution for send_imessage Before Dispatch
+6317 5:04p 🔵 audio_pipeline.py + event_extractor.py — Full Dual-Path Processing Architecture
+6318 " 🟣 actions.py — schedule_imessage Action Added with SQLite Job Queue
+6319 " 🟣 action_runtime.py — schedule_imessage Wired into Proposal Pipeline
+6320 " 🔵 ambient.py — Proactive Calendar Nudge Loop with Departure Time + Context Synthesis
+6321 5:05p 🟣 schedule_imessage Fully Wired Across All Layers — Extractor, Policy, Audit, Audio Pipeline
+6322 " 🟣 trigger_server.py — Background Scheduler Loop + Ambient Tick Loop + Scheduled iMessage REST Endpoints
+6324 5:13p 🟣 AGIHouse — Relationship Edge Memory + Feedback Learning Added
+6325 " 🟣 AGIHouse — action_runtime.py Wires Feedback Learning on Confirm/Reject
+6326 " 🟣 AGIHouse — trigger_server.py Exposes /memory/edges and /memories Endpoints
+6327 " ✅ AGIHouse Tests — learn_from_proposal_feedback Mocked in action_runtime Tests
+6328 5:14p ✅ AGIHouse Tests — All confirm/reject Test Cases Fully Patched for learn_from_proposal_feedback
+6329 " ✅ AGIHouse Tests — confirm_proposal Response Asserts "learned" Key Presence
+
+Access 78k tokens of past work via get_observations([IDs]) or mem-search skill.
+</claude-mem-context>

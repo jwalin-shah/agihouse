@@ -4,6 +4,8 @@ __pycache__/
 .pytest_cache/
 .env
 state.json
+state.db
+state.db-*
 audit.log
 actions.jsonl
 memories.jsonl

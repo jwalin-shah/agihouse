@@ -13,9 +13,8 @@ sender engagement count, the topic similarity. Judges can audit every result.
 """
 from __future__ import annotations
 from pathlib import Path
-import sys, math
+import sys
 import torch
-import torch.nn.functional as F
 
 STORE = Path(__file__).parent / "assistant_store.pt"
 
@@ -201,7 +200,7 @@ def from_meeting_contacts(store, topic_query: str | None = None, k: int = 8):
         print(f"        sender:    {inv_p[s]}")
         print(f"        msg:       {meta.get('snippet','')[:90]!r}")
         print(f"        via event: {ev['summary'][:60]!r}  @ {ev['start'][:16]}")
-        legs = [f"CoAttend✓({ev['summary'][:24]})", f"Sent[p,me,m]✓",
+        legs = [f"CoAttend✓({ev['summary'][:24]})", "Sent[p,me,m]✓",
                 f"Recency={float(recency[m]):.2f}"]
         if topic_query: legs.append(f"Topic={float(topic_score[m]):.2f}")
         print(f"        provenance: {' · '.join(legs)}")

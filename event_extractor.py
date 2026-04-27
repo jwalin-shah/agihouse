@@ -28,7 +28,7 @@ SYSTEM = """You extract a single intended ACTION from a short transcript of spee
 
 Return JSON ONLY with these fields:
 {
-  "action": "send_imessage" | "create_reminder" | "add_calendar_event" | "add_note" | "send_email" | "list_reminders" | "list_calendar" | "list_notes" | "list_memories" | "remember_fact" | "answer_question" | "none",
+  "action": "send_imessage" | "schedule_imessage" | "create_reminder" | "add_calendar_event" | "add_note" | "send_email" | "list_reminders" | "list_calendar" | "list_notes" | "list_memories" | "remember_fact" | "answer_question" | "none",
   "payload": { ...action-specific... },
   "confidence": 0.0 to 1.0,
   "reason": "<one short sentence>"
@@ -36,6 +36,7 @@ Return JSON ONLY with these fields:
 
 Action payload shapes:
 - send_imessage: {"handle": "<name from transcript>", "text": "<short message>"}
+- schedule_imessage: {"handle": "<name from transcript>", "text": "<short message>", "send_at": "<when, ISO-like>"}
 - create_reminder: {"title": "<what>", "due": "<when, ISO-like or null>"}
 - add_calendar_event: {"title": "<what>", "when": "<when string>"}
 - add_note: {"title": "<one-line summary>", "body": "<longer context if any>"}
@@ -63,6 +64,7 @@ Rules:
 - Examples:
   "Remind me to call mom tomorrow" → create_reminder
   "I'll text Tarun the demo" → send_imessage
+  "I'll text Tarun the demo tonight at 8" → schedule_imessage
   "We're meeting at 3" → add_calendar_event
   "Note that the build broke" → add_note
   "What are my reminders?" → list_reminders

@@ -17,7 +17,7 @@ The cast & stories are designed so:
 """
 from __future__ import annotations
 from pathlib import Path
-import time, torch
+import torch
 from datetime import datetime, timedelta, timezone
 
 OUT_PATH = Path(__file__).parent / "assistant_store.pt"
@@ -130,6 +130,29 @@ MSGS = [
     ("m_linkedin_1", "gmail", "linkedin@noreply.com", [SELF_ID], "th_linkedin",
      "Forward Deployed Engineer at HappyRobot: matches your profile.",
      6, False, False),
+
+    # ── Distractors: similar names / same topics / already handled ──────
+    ("m_alex_noise_1", "gmail", "alex@modernroots.io", [SELF_ID], "th_alex_logistics",
+     "Here's the Zoom link and parking info for the interview loop.",
+     1, False, False),
+    ("m_sara_noise_1", "gmail", "sarah@boardy.com", [SELF_ID], "th_sarah_intro_done",
+     "Did the Omar intro land okay?",
+     3, True, True),
+    ("m_me_sarah_noise", "gmail", SELF_ID, ["sarah@boardy.com"], "th_sarah_intro_done",
+     "Yes, all set — thanks for making it.",
+     3, False, True),
+    ("m_tarun_noise_1", "imessage", "+17168032645", [SELF_ID], "th_tarun_old",
+     "Random thought: the old tensor notebook had a bug in the ranking logic.",
+     14, False, False),
+    ("m_dad_noise_1", "imessage", "+14155550101", [SELF_ID], "th_dad_recipe",
+     "Can you send the recipe from last weekend?",
+     22, True, True),
+    ("m_me_dad_noise", "imessage", SELF_ID, ["+14155550101"], "th_dad_recipe",
+     "Sent it earlier — check WhatsApp.",
+     22, False, True),
+    ("m_hr_noise_1", "gmail", "linkedin@noreply.com", [SELF_ID], "th_hr_noise",
+     "HR operations webinar: register now for a compliance checklist.",
+     4, False, False),
 
     # ── Ratnam — recent thread, replied (negative example) ─────────────
     ("m_ratnam_1", "gmail", "ratnam@gmail.com", [SELF_ID], "th_ratnam",

@@ -72,8 +72,32 @@ def _load_policy() -> dict:
 _DEFAULT_POLICY: dict = {
     "mode": "live",
     "log_path": "audit.log",
-    "allowed_actions": ["recall", "departure_nudge", "commitment_log"],
-    "denied_actions": [],
+    "allowed_actions": [
+        "recall",
+        "departure_nudge",
+        "commitment_log",
+        "send_imessage",
+        "schedule_imessage",
+        "create_reminder",
+        "add_calendar_event",
+        "add_note",
+        "list_reminders",
+        "list_calendar",
+        "list_notes",
+        "list_memories",
+        "remember_fact",
+        "answer_question",
+    ],
+    "denied_actions": ["send_email"],
+    "execution": {
+        "auto_fire_actions": [
+            "list_reminders",
+            "list_calendar",
+            "list_notes",
+            "list_memories",
+            "answer_question",
+        ],
+    },
     "restraint": {
         "recall_cooldown_seconds": 300,
         "require_prior_correspondence": True,
@@ -110,7 +134,7 @@ def _log_path() -> Path:
 
 
 def log_event(decision: str, *, action: str, reason: str = "", **fields: Any) -> None:
-    """Append one JSONL row. decision ∈ {fired, suppressed, dry_run, considered}."""
+    """Append one JSONL row."""
     row = {
         "ts": time.time(),
         "iso": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime()),

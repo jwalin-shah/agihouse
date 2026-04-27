@@ -5,7 +5,8 @@ saved by the inbox project. Returns a list of normalized event dicts.
 No google-api-python-client dependency — just requests + the saved refresh_token.
 """
 from __future__ import annotations
-import json, os, time
+import json
+import os
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 import requests

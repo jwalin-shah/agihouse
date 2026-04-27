@@ -11,7 +11,10 @@ Usage:
     python3 assistant_agent.py "what events do i have coming up"
 """
 from __future__ import annotations
-import os, sys, json, re
+import os
+import sys
+import json
+import re
 import anthropic
 
 from assistant_query import load_store, followups, from_meeting_contacts, upcoming_events_with_msgs

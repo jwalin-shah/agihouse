@@ -11,8 +11,9 @@ Also augments people map with any new attendees.
 """
 from __future__ import annotations
 from pathlib import Path
-import time, torch
-from datetime import datetime, timezone
+import time
+import torch
+from datetime import datetime
 
 from assistant_resolve import build_resolver, SELF_HANDLES
 from assistant_calendar import fetch_all_events

@@ -51,7 +51,7 @@ Never invent facts. Use only what's in the items."""
 def _client_singleton() -> Anthropic:
     global _client
     if _client is None:
-        _client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        _client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
     return _client
 
 
@@ -215,6 +215,32 @@ def recall(
 
     if not items:
         return None
+
+    # If we have an Anthropic key, use the LLM to synthesize a digest.
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if key:
+        try:
+            client = _client_singleton()
+            user_msg = f"Person: {name}\n\nRecent messages with them:\n" + _render(items) + "\n\nWrite the whisper now."
+            resp = client.messages.create(
+                model=_MODEL,
+                max_tokens=80,
+                system=[
+                    {
+                        "type": "text",
+                        "text": SYSTEM,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
+                messages=[{"role": "user", "content": user_msg}],
+            )
+            text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+            if text and text.lower() != "skip":
+                mark_fired("recall", person=name, output=text)
+                return text
+        except Exception as e:
+            print(f"[recall] LLM failed: {e}", file=sys.stderr)
+            # fall through to naive
 
     # No-LLM path: surface the freshest snippet directly. Demo-grade,
     # deterministic, no API key required.

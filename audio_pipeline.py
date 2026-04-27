@@ -28,7 +28,8 @@ from typing import Callable
 import numpy as np
 import requests
 
-from actions import dispatch as dispatch_action, lookup_contact
+from action_runtime import evaluate_and_dispatch
+from actions import lookup_contact
 from event_extractor import extract as extract_event
 from output import notify
 from recall import recall
@@ -119,6 +120,7 @@ class GlassesAudioPipeline:
             text = self._transcribe(audio)
         except Exception as e:
             print(f"[glasses-audio] transcribe failed: {e!r}", file=sys.stderr)
+            notify(f"⚠️ ASR Error: {str(e)[:50]}")
             return
         if not text:
             return
@@ -137,19 +139,28 @@ class GlassesAudioPipeline:
             event = extract_event(text)
         except Exception as e:
             print(f"[glasses-audio] extractor failed: {e!r}", file=sys.stderr)
+            notify(f"⚠️ Extractor Error: {str(e)[:50]}")
             return
         if not event:
             return
         action = event.get("action")
         payload = dict(event.get("payload") or {})
-        # Resolve handle → phone for send_imessage via contacts.json.
-        if action == "send_imessage" and "handle" in payload:
+        # Resolve handle → phone for message actions via contacts.json.
+        if action in {"send_imessage", "schedule_imessage"} and "handle" in payload:
             contact = lookup_contact(payload["handle"])
             if contact and contact.get("phone"):
                 payload["handle"] = contact["phone"]
-        print(f"[glasses-audio] event: {action} payload={payload} conf={event.get('confidence')}",
-              file=sys.stderr)
-        dispatch_action(action, payload)
+        confidence = event.get("confidence")
+        print(
+            f"[glasses-audio] event: {action} payload={payload} conf={confidence}",
+            file=sys.stderr,
+        )
+        evaluate_and_dispatch(
+            action,
+            payload,
+            transcript=text,
+            confidence=confidence,
+        )
 
     def _transcribe(self, audio: np.ndarray) -> str:
         if not self._groq_key:

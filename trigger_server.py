@@ -21,6 +21,7 @@ import contextlib
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 # --- Make sibling inbox project importable -------------------------------
@@ -44,9 +45,10 @@ except Exception as _e:
     google_auth_all = None  # type: ignore[assignment]
     _load_state = tick = notify = recall = None  # type: ignore[assignment]
 
-from fastapi import FastAPI, HTTPException, Request  # noqa: E402
+from fastapi import FastAPI, HTTPException, Request, Depends, BackgroundTasks  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import StreamingResponse  # noqa: E402
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 app = FastAPI()
@@ -57,11 +59,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+security = HTTPBearer(auto_error=False)
+
+def _require_auth(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> None:
+    expected = os.environ.get("AGIHOUSE_API_KEY", "").strip()
+    if not expected:
+        return
+    if not credentials or credentials.credentials != expected:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
 # Cached service dicts — populated on startup.
 _state: dict = {"gmail_services": None, "cal_services": None, "auth_error": None}
 
 # In-memory fanout for the G2 renderer. Each subscriber owns an asyncio.Queue.
 _subscribers: list[asyncio.Queue[str]] = []
+_scheduled_task: asyncio.Task | None = None
+_ambient_task: asyncio.Task | None = None
 
 
 class RecallBody(BaseModel):
@@ -72,23 +85,132 @@ class PushBody(BaseModel):
     text: str
 
 
+class TranscriptBody(BaseModel):
+    text: str
+    event: dict | None = None
+
+
+class RejectProposalBody(BaseModel):
+    reason: str = "user_rejected"
+
+
 @app.on_event("startup")
 def _auth_once() -> None:
-    # Demo path is mic → VAD → Groq → recall (iMessage local sqlite). Gmail
-    # is not on the hot path; recall.py guards Gmail calls with try/except,
-    # so we leave gmail_services None and skip the OAuth refresh entirely.
+    # Attempt to load Gmail/Calendar OAuth services at startup.
     if _INBOX_IMPORT_ERR is not None:
         _state["auth_error"] = f"inbox import failed: {_INBOX_IMPORT_ERR}"
         print(f"[trigger_server] inbox unavailable: {_INBOX_IMPORT_ERR}", file=sys.stderr)
+        return
+    try:
+        svcs = google_auth_all(interactive=False)
+        _state["gmail_services"] = svcs
+        _state["cal_services"] = svcs
+    except Exception as e:
+        _state["auth_error"] = f"OAuth failed: {e}"
+        print(f"[trigger_server] Gmail OAuth failed (token expired?): {e}", file=sys.stderr)
+
+
+@app.on_event("startup")
+async def _start_background_tasks() -> None:
+    global _scheduled_task, _ambient_task
+    _scheduled_task = asyncio.create_task(_scheduled_imessage_loop())
+    if os.environ.get("AGIHOUSE_AMBIENT_TICK", "").strip().lower() in {"1", "true", "yes"}:
+        _ambient_task = asyncio.create_task(_ambient_tick_loop())
+
+
+@app.on_event("shutdown")
+async def _stop_background_tasks() -> None:
+    for task in (_scheduled_task, _ambient_task):
+        if task:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
+
+async def _scheduled_imessage_loop() -> None:
+    while True:
+        try:
+            from actions import send_due_imessages
+
+            sent = await asyncio.to_thread(send_due_imessages)
+            for item in sent:
+                print(f"[trigger_server] scheduled iMessage job {item['job_id']} -> {item['status']}", file=sys.stderr)
+        except Exception as e:
+            print(f"[trigger_server] scheduled iMessage loop failed: {e!r}", file=sys.stderr)
+        await asyncio.sleep(float(os.environ.get("AGIHOUSE_SCHEDULER_INTERVAL", "15")))
+
+
+async def _ambient_tick_loop() -> None:
+    if _INBOX_IMPORT_ERR is not None:
+        return
+    state = _load_state()
+    interval = float(os.environ.get("AGIHOUSE_AMBIENT_TICK_SECONDS", "60"))
+    while True:
+        try:
+            await asyncio.to_thread(tick, state)
+        except Exception as e:
+            print(f"[trigger_server] ambient loop failed: {e!r}", file=sys.stderr)
+        await asyncio.sleep(interval)
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True}
+    return {"ok": True, "inbox_available": _INBOX_IMPORT_ERR is None}
 
 
-@app.post("/recall")
+def _path_diag(path: Path) -> dict:
+    exists = path.exists()
+    if exists:
+        writable = os.access(path, os.W_OK)
+    else:
+        writable = os.access(path.parent, os.W_OK)
+    return {"path": str(path), "exists": exists, "writable": writable}
+
+
+@app.get("/diagnostics", dependencies=[Depends(_require_auth)])
+def diagnostics() -> dict:
+    # Keep this endpoint deterministic + local-only so it's safe for quick checks.
+    from audit import policy as load_policy  # lazy import to avoid startup coupling
+    from actions import _live_imessage_handles  # lazy import to avoid startup coupling
+
+    pol = load_policy() or {}
+    root = Path(__file__).parent
+    return {
+        "ok": True,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "inbox_available": _INBOX_IMPORT_ERR is None,
+        "inbox_error": _INBOX_IMPORT_ERR,
+        "policy_mode": pol.get("mode", "unknown"),
+        "proposal_first": os.environ.get("AGIHOUSE_PROPOSAL_ONLY", "1"),
+        "ambient_tick": os.environ.get("AGIHOUSE_AMBIENT_TICK", "0"),
+        "scheduler_interval": os.environ.get("AGIHOUSE_SCHEDULER_INTERVAL", "15"),
+        "live_imessage_handles": len(_live_imessage_handles()),
+        "keys_present": {
+            "GROQ_API_KEY": bool(os.environ.get("GROQ_API_KEY")),
+            "ANTHROPIC_API_KEY": bool(os.environ.get("ANTHROPIC_API_KEY")),
+            "NVIDIA_API_KEY": bool(os.environ.get("NVIDIA_API_KEY")),
+        },
+        "files": {
+            "actions_jsonl": _path_diag(root / "actions.jsonl"),
+            "audit_log": _path_diag(root / "audit.log"),
+            "policy_yaml": _path_diag(root / "policy.yaml"),
+            "contacts_json": _path_diag(root / "contacts.json"),
+        },
+        "subscribers": len(_subscribers),
+    }
+
+
+def _require_inbox(feature: str) -> None:
+    if _INBOX_IMPORT_ERR is not None:
+        raise HTTPException(
+            status_code=503,
+            detail=f"{feature} unavailable: inbox dependency import failed",
+        )
+
+
+@app.post("/recall", dependencies=[Depends(_require_auth)])
 def recall_endpoint(body: RecallBody) -> dict:
+    _require_inbox("recall")
     gmail_svcs = _state.get("gmail_services")
     name = body.name.strip()
     try:
@@ -109,8 +231,9 @@ def recall_endpoint(body: RecallBody) -> dict:
     return {"ok": True, "text": None}
 
 
-@app.post("/tick")
+@app.post("/tick", dependencies=[Depends(_require_auth)])
 def tick_endpoint(include_far: bool = False) -> dict:
+    _require_inbox("tick")
     state = _load_state()
     state["alerted"] = []
     try:
@@ -159,7 +282,7 @@ SUPPRESSED_DEMOS: dict[str, dict] = {
 }
 
 
-@app.post("/demo/{scenario}")
+@app.post("/demo/{scenario}", dependencies=[Depends(_require_auth)])
 async def demo_endpoint(scenario: str) -> dict:
     # Suppressed scenarios — emit a policy decision to audit.log, push NOTHING.
     if scenario in SUPPRESSED_DEMOS:
@@ -200,16 +323,47 @@ def _audio_pipeline():
     return _glasses_audio
 
 
-@app.post("/audio")
-async def audio_endpoint(request: Request) -> dict:
+@app.post("/audio", dependencies=[Depends(_require_auth)])
+async def audio_endpoint(request: Request, background_tasks: BackgroundTasks) -> dict:
+    _require_inbox("audio")
     body = await request.body()
     n = len(body)
     if n:
-        _audio_pipeline().feed(body)
+        background_tasks.add_task(_audio_pipeline().feed, body)
     return {"ok": True, "bytes": n}
 
 
-@app.post("/push")
+@app.post("/transcript", dependencies=[Depends(_require_auth)])
+def transcript_endpoint(body: TranscriptBody) -> dict:
+    """Perfect-ASR test hook: run a transcript through the action path."""
+    from action_runtime import evaluate_and_dispatch
+    from actions import lookup_contact
+    from event_extractor import extract as extract_event
+
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="empty transcript")
+    event = body.event or extract_event(text)
+    if not event:
+        return {"ok": True, "status": "no_action", "transcript": text}
+
+    action = event.get("action")
+    payload = dict(event.get("payload") or {})
+    if action in {"send_imessage", "schedule_imessage"} and "handle" in payload:
+        contact = lookup_contact(payload["handle"])
+        if contact and contact.get("phone"):
+            payload["handle"] = contact["phone"]
+
+    result = evaluate_and_dispatch(
+        action,
+        payload,
+        transcript=text,
+        confidence=event.get("confidence"),
+    )
+    return {"ok": True, "transcript": text, "event": {**event, "payload": payload}, "result": result}
+
+
+@app.post("/push", dependencies=[Depends(_require_auth)])
 async def push_endpoint(body: PushBody) -> dict:
     payload = json.dumps({"text": body.text})
     dropped = 0
@@ -219,6 +373,75 @@ async def push_endpoint(body: PushBody) -> dict:
         except asyncio.QueueFull:
             dropped += 1
     return {"ok": True, "subscribers": len(_subscribers), "dropped": dropped}
+
+
+@app.get("/proposals", dependencies=[Depends(_require_auth)])
+def proposals_endpoint() -> dict:
+    from action_runtime import list_pending_proposals
+
+    return {"ok": True, "proposals": list_pending_proposals()}
+
+
+@app.get("/audit/summary", dependencies=[Depends(_require_auth)])
+def audit_summary_endpoint() -> dict:
+    from audit import summary
+
+    return {"ok": True, "summary": summary()}
+
+
+@app.get("/actions/recent", dependencies=[Depends(_require_auth)])
+def recent_actions_endpoint(limit: int = 50) -> dict:
+    from actions import recent_actions
+
+    return {"ok": True, "actions": recent_actions(limit=limit)}
+
+
+@app.get("/memory/edges", dependencies=[Depends(_require_auth)])
+def memory_edges_endpoint(limit: int = 50) -> dict:
+    from actions import list_memory_edges
+
+    return {"ok": True, "edges": list_memory_edges(limit=limit)}
+
+
+@app.get("/memories", dependencies=[Depends(_require_auth)])
+def memories_endpoint(query: str | None = None) -> dict:
+    from actions import list_memories
+
+    return {"ok": True, "result": list_memories(query=query)}
+
+
+@app.get("/scheduled-imessages", dependencies=[Depends(_require_auth)])
+def scheduled_imessages_endpoint(limit: int = 50) -> dict:
+    from actions import list_scheduled_imessages
+
+    return {"ok": True, "scheduled": list_scheduled_imessages(limit=limit)}
+
+
+@app.post("/scheduled-imessages/run-due", dependencies=[Depends(_require_auth)])
+def run_due_scheduled_imessages_endpoint() -> dict:
+    from actions import send_due_imessages
+
+    return {"ok": True, "sent": send_due_imessages()}
+
+
+@app.post("/proposals/{proposal_id}/confirm", dependencies=[Depends(_require_auth)])
+def confirm_proposal_endpoint(proposal_id: str) -> dict:
+    from action_runtime import confirm_proposal
+
+    out = confirm_proposal(proposal_id)
+    if not out.get("ok"):
+        raise HTTPException(status_code=404, detail=out)
+    return out
+
+
+@app.post("/proposals/{proposal_id}/reject", dependencies=[Depends(_require_auth)])
+def reject_proposal_endpoint(proposal_id: str, body: RejectProposalBody) -> dict:
+    from action_runtime import reject_proposal
+
+    out = reject_proposal(proposal_id, reason=body.reason)
+    if not out.get("ok"):
+        raise HTTPException(status_code=404, detail=out)
+    return out
 
 
 @app.get("/events")

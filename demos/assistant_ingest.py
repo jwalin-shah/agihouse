@@ -16,10 +16,13 @@ Plus metadata: people_id_map, msg_id_map, thread_id_map, msg_meta (sender, ts, s
 Saves to demos/assistant_store.pt
 """
 from __future__ import annotations
-import sqlite3, json, re, os, time
+import sqlite3
+import json
+import re
+import os
+import time
 from pathlib import Path
 import torch
-import torch.nn.functional as F
 
 from assistant_resolve import build_resolver, norm_handle, norm_email
 
