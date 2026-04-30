@@ -10,7 +10,7 @@
     {
       "name": "network",
       "desc": "Subscribe to ambient nudges from the user's local trigger server.",
-      "whitelist": ["https://trigger-dogs-past-experiments.trycloudflare.com"]
+      "whitelist": ["https://excluding-bible-settle-con.trycloudflare.com"]
     },
     {
       "name": "g2-microphone",

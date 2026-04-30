@@ -35,12 +35,12 @@ class ScheduleImessagePayload(BaseModel):
 
 
 class CreateReminderPayload(BaseModel):
-    title: str
+    title: str = "Reminder"
     due: str | None = None
 
 
 class AddCalendarEventPayload(BaseModel):
-    title: str
+    title: str = "Event"
     when: str
 
 
@@ -280,7 +280,7 @@ def evaluate_and_dispatch(
             transcript_chunk=transcript[:240],
             ts_runtime=ts,
         )
-        notify(_render_card_line(card), speak=False)
+        notify(f"🟡 PROPOSAL: {card['title']}\nSay 'confirm' or 'reject'", speak=False)
         return {
             "ok": True,
             "status": "proposed",

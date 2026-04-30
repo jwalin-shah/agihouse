@@ -429,6 +429,28 @@ def run_due_scheduled_imessages_endpoint() -> dict:
     return {"ok": True, "sent": send_due_imessages()}
 
 
+@app.post("/proposals/confirm-latest")
+def confirm_latest_endpoint() -> dict:
+    """Voice-confirm: pop OLDEST pending proposal (FIFO), confirm it, and
+    surface the next-in-line on the HUD if more are queued."""
+    from action_runtime import confirm_proposal, list_pending_proposals
+    pending = list_pending_proposals()
+    if not pending:
+        return {"ok": False, "reason": "no_pending"}
+    oldest = pending[0]
+    pid = oldest.get("id") or oldest.get("proposal_id")
+    if not pid:
+        return {"ok": False, "reason": "no_id"}
+    out = confirm_proposal(pid)
+    remaining = list_pending_proposals()
+    if remaining:
+        nxt = remaining[0]
+        title = nxt.get("title") or nxt.get("preview") or "next action"
+        from output import notify
+        notify(f"🟡 NEXT: {title}\nSay 'confirm' or 'reject' ({len(remaining)} queued)", speak=False)
+    return {**out, "remaining": len(remaining)}
+
+
 @app.post("/proposals/{proposal_id}/confirm", dependencies=[Depends(_require_auth)])
 def confirm_proposal_endpoint(proposal_id: str) -> dict:
     from action_runtime import confirm_proposal

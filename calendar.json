@@ -1,44 +1,13 @@
 [
-  {
-    "title": "AGI House demo prep",
-    "when": "2026-04-26 18:00",
-    "with": [
-      "Tarun",
-      "Rohith"
-    ]
-  },
-  {
-    "title": "demo presentation",
-    "when": "2026-04-27 14:00",
-    "with": [
-      "judges"
-    ]
-  },
-  {
-    "title": "lunch w/ Jay",
-    "when": "2026-04-28 12:30",
-    "with": [
-      "Jay"
-    ]
-  },
-  {
-    "title": "event",
-    "when": "9pm",
-    "created": 1777244598.383144
-  },
-  {
-    "title": "meeting",
-    "when": "tomorrow",
-    "created": 1777244869.09501
-  },
-  {
-    "title": "come with me",
-    "when": "tomorrow 11am",
-    "created": 1777245037.074948
-  },
-  {
-    "title": "demo",
-    "when": "tonight at 7pm",
-    "created": 1777245945.7400022
-  }
+  {"title": "AGI House demo on stage", "when": "2026-04-26 19:00", "with": ["Sanjay", "Tarun", "Rohith"]},
+  {"title": "Coffee with Sanjay — debrief", "when": "2026-04-27 09:30", "with": ["Sanjay"]},
+  {"title": "1:1 with Rohith — Q3 roadmap", "when": "2026-04-27 11:00", "with": ["Rohith"]},
+  {"title": "Investor call — Sequoia", "when": "2026-04-27 14:00", "with": ["Rohith", "Jay"]},
+  {"title": "Lunch w/ Jay — board prep", "when": "2026-04-28 12:30", "with": ["Jay"]},
+  {"title": "Friday standup w/ Tarun", "when": "2026-04-24 10:00", "with": ["Tarun"]},
+  {"title": "Last Friday: deck review w/ Rohith", "when": "2026-04-24 16:00", "with": ["Rohith"]},
+  {"title": "Hike with Sanjay (rescheduled from last weekend)", "when": "2026-05-02 08:00", "with": ["Sanjay"]},
+  {"title": "Mom — Sunday call", "when": "2026-05-03 15:00", "with": ["Mom"]},
+  {"title": "Dentist", "when": "2026-05-05 09:00", "with": []},
+  {"title": "Aunt Priya visit window opens", "when": "2026-05-15 09:00", "with": ["Aunt Priya", "Mom"]}
 ]

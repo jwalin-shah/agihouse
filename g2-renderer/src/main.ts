@@ -52,32 +52,20 @@ function inferKind(text: string): HudKind {
 }
 
 function splitTitleBody(text: string, kind: HudKind): { title: string; body: string; meta: string } {
-  if (kind === 'ready') return { title: 'AGIHOUSE', body: 'Listening for nudges', meta: 'audio + context live' }
+  if (kind === 'ready') return { title: 'AGIHOUSE', body: 'Listening', meta: '' }
 
   const proposal = text.match(/^(Proposed|Executed|Rejected)\[([^\]]+)\]\s*:?\s*(.*)$/i)
   if (proposal) {
     return {
       title: proposal[1].toUpperCase(),
       body: clean(proposal[3], text),
-      meta: `id ${proposal[2]}`,
+      meta: '',
     }
   }
 
-  const [left, ...rest] = text.split(' — ')
-  if (rest.length > 0) {
-    return { title: clean(left), body: clean(rest.join(' — ')), meta: kind.toUpperCase() }
-  }
-
-  const colon = text.indexOf(':')
-  if (colon > 0 && colon < 32) {
-    return {
-      title: clean(text.slice(0, colon)).toUpperCase(),
-      body: clean(text.slice(colon + 1)),
-      meta: kind.toUpperCase(),
-    }
-  }
-
-  return { title: kind.toUpperCase(), body: text, meta: 'live' }
+  // No more title duplication: leave title empty for plain notes; the header
+  // already shows the kind label. The full text goes into body.
+  return { title: '', body: clean(text), meta: '' }
 }
 
 function normalizeEvent(payload: BridgeEvent): HudMessage | null {
@@ -114,10 +102,13 @@ function formatForHud(message: HudMessage): string {
 
 function formatForHudContainers(message: HudMessage): { header: string; title: string; body: string } {
   const label = message.kind.toUpperCase()
+  // Title is optional — collapses to body when empty, which avoids the
+  // duplicated "NOTE NOTE" effect we used to see.
+  const useTitle = message.title && message.title !== label
   return {
-    header: `${label}  ${message.meta}`.trim().slice(0, 46),
-    title: clampLine(message.title, 38),
-    body: clampLine(message.body, 125),
+    header: label.slice(0, 46),
+    title: useTitle ? clampLine(message.title, 36) : '',
+    body: clampLine(message.body, useTitle ? 240 : 320),
   }
 }
 
@@ -212,11 +203,9 @@ function formatForHudContainers(message: HudMessage): { header: string; title: s
     return content
   }
 
-  const proposalPanel = panel('Pending proposals')
-  const schedulePanel = panel('Scheduled sends')
-  const memoryPanel = panel('Learned memory')
-  const auditPanel = panel('Audit')
-  const controlsPanel = panel('Controls')
+  const proposalPanel = panel('Active proposal')
+  const upNextPanel = panel('Up next')
+  const memoryPanel = panel('Just learned')
 
   const recent = document.createElement('div')
   recent.style.cssText =
@@ -304,56 +293,24 @@ function formatForHudContainers(message: HudMessage): { header: string; title: s
 
   async function refreshPanels() {
     const proposals = await fetchJson('/proposals') as { proposals?: Array<{ id?: string; action?: string; card?: { title?: string; preview?: string } }> } | null
-    const scheduled = await fetchJson('/scheduled-imessages') as { scheduled?: Array<{ handle?: string; text?: string; status?: string; send_at?: number }> } | null
-    const memory = await fetchJson('/memory/edges') as { edges?: Array<{ subject?: string; relation?: string; object?: string; confidence?: number }> } | null
-    const audit = await fetchJson('/audit/summary') as { summary?: { total?: number; by_decision?: Record<string, number> } } | null
+    const memory = await fetchJson('/memory/edges?limit=3') as { edges?: Array<{ subject?: string; relation?: string; object?: string; confidence?: number }> } | null
 
     const proposed = (proposals?.proposals ?? []).filter(p => p)
     proposalPanel.replaceChildren(
-      ...(proposed.length ? proposed.slice(0, 3).map(p => proposalNode(p)) : [row('none', '#64748b')]),
+      ...(proposed.length ? proposed.slice(0, 1).map(p => proposalNode(p)) : [row('waiting for the next ask', '#64748b')]),
     )
 
-    const jobs = scheduled?.scheduled ?? []
-    schedulePanel.replaceChildren(
-      ...(jobs.length ? jobs.slice(0, 4).map(j => {
-        const when = j.send_at ? new Date(j.send_at * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '?'
-        return row(`${j.status ?? 'scheduled'} ${when} · ${j.handle ?? ''} · ${j.text ?? ''}`)
-      }) : [row('none', '#64748b')]),
-    )
+    upNextPanel.replaceChildren(row('say "what is on my calendar"', '#64748b'))
 
     const edges = memory?.edges ?? []
     memoryPanel.replaceChildren(
-      ...(edges.length ? edges.slice(0, 4).map(edge => {
+      ...(edges.length ? edges.slice(0, 2).map(edge => {
         const conf = typeof edge.confidence === 'number' ? `${Math.round(edge.confidence * 100)}%` : '?'
-        return row(`${conf} · ${edge.subject ?? '?'} ${edge.relation ?? 'relates_to'} ${edge.object ?? '?'}`)
-      }) : [row('none yet', '#64748b')]),
-    )
-
-    const counts = audit?.summary?.by_decision ?? {}
-    auditPanel.replaceChildren(
-      row(`total ${audit?.summary?.total ?? 0}`),
-      row(`fired ${counts.fired ?? 0} · proposed ${counts.proposed ?? 0} · suppressed ${counts.suppressed ?? 0}`),
+        return row(`${conf} - ${edge.subject ?? '?'} ${edge.relation ?? 'relates_to'} ${edge.object ?? '?'}`)
+      }) : [row('nothing yet', '#64748b')]),
     )
   }
 
-  controlsPanel.replaceChildren(
-    button('Daniel', async () => {
-      await postJson('/demo/who_is_daniel')
-      await refreshPanels()
-    }),
-    button('Departure', async () => {
-      await postJson('/demo/departure')
-      await refreshPanels()
-    }),
-    button('Silence', async () => {
-      await postJson('/demo/silence')
-      await refreshPanels()
-    }),
-    button('Run due sends', async () => {
-      await postJson('/scheduled-imessages/run-due')
-      await refreshPanels()
-    }),
-  )
   refreshPanels()
   window.setInterval(refreshPanels, 3000)
 
@@ -412,7 +369,7 @@ const headerContainer = new TextContainerProperty({
   containerID: 1,
   containerName: 'hud_header',
   content: 'READY  audio + context live',
-  isEventCapture: 1,
+  isEventCapture: 0,
 })
 
 const titleContainer = new TextContainerProperty({
@@ -426,7 +383,7 @@ const titleContainer = new TextContainerProperty({
   containerID: 2,
   containerName: 'hud_title',
   content: 'AGIHOUSE',
-  isEventCapture: 1,
+  isEventCapture: 0,
 })
 
 const bodyContainer = new TextContainerProperty({
@@ -461,11 +418,25 @@ function currentMessage(): HudMessage {
   return history[historyIndex] ?? history[0]
 }
 
+// Coalesce consecutive plain-note messages that arrive within ~3s.
+// Speech with natural pauses gets segmented by VAD into multiple chunks;
+// without coalescing, the HUD flips between them and looks fragmented.
+const COALESCE_WINDOW_MS = 3000
+let lastNoteTs = 0
 function pushHistory(message: HudMessage) {
   const last = history[history.length - 1]
   if (message.raw === last?.raw) return
-  history.push(message)
-  if (history.length > MAX_HISTORY) history.shift()
+  const now = Date.now()
+  const isNote = message.kind === 'note' || message.kind === 'recall'
+  const lastIsNote = last && (last.kind === 'note' || last.kind === 'recall')
+  if (isNote && lastIsNote && now - lastNoteTs < COALESCE_WINDOW_MS) {
+    const merged = `${last!.body} ${message.body}`.replace(/\s+/g, ' ').trim()
+    history[history.length - 1] = { ...message, body: merged, raw: merged }
+  } else {
+    history.push(message)
+    if (history.length > MAX_HISTORY) history.shift()
+  }
+  if (isNote) lastNoteTs = now
   historyIndex = history.length - 1
 }
 
@@ -542,7 +513,7 @@ connect()
 
 // Audio capture: G2 mic streams 16kHz s16le mono PCM in ~100ms frames.
 // Buffer ~1s and POST to /audio so the laptop can run Whisper + recall.
-const AUDIO_FLUSH_BYTES = 32_000  // ~1s of 16kHz s16le mono = 16000 samples * 2 bytes
+const AUDIO_FLUSH_BYTES = 12_800  // ~400ms of 16kHz s16le mono
 const audioBuffer: Uint8Array[] = []
 let audioBufferedBytes = 0
 let audioInFlight = false
@@ -573,7 +544,7 @@ async function flushAudio() {
 
 const audioFlushTimer = window.setInterval(() => {
   flushAudio()
-}, 1200)
+}, 500)
 
 function isEventTypeMatch(
   actual: number | null | undefined,
@@ -595,9 +566,12 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
   const sysType = event.sysEvent?.eventType ?? null
   const textType = event.textEvent?.eventType ?? null
 
-  // Scroll history back with single click, forward with long press when available.
+  // Single click confirms latest pending proposal; long press scrolls history.
   if (isEventTypeMatch(sysType, 'SINGLE_CLICK_EVENT') || isEventTypeMatch(textType, 'SINGLE_CLICK_EVENT')) {
-    stepHistory(-1)
+    fetch(`${BRIDGE_URL}/proposals/confirm-latest`, { method: 'POST' })
+      .then(r => r.json())
+      .then(j => console.log('confirm-latest:', j))
+      .catch(err => console.error('confirm-latest failed:', err))
     return
   }
   if (isEventTypeMatch(sysType, 'LONG_PRESS_EVENT') || isEventTypeMatch(textType, 'LONG_PRESS_EVENT')) {

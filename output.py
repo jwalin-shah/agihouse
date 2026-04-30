@@ -19,8 +19,16 @@ _BRIDGE_URL = os.environ.get("AGIHOUSE_BRIDGE_URL", "http://127.0.0.1:9876").rst
 _BRIDGE_TIMEOUT = 1.0
 
 
+def _ascii_for_hud(text: str) -> str:
+    """G2 simulator's font lacks emoji glyphs. Force pure ASCII for the HUD."""
+    return text.encode("ascii", "ignore").decode("ascii").strip()
+
+
 def _push_to_bridge(text: str) -> None:
     try:
+        text = _ascii_for_hud(text)
+        if not text:
+            return
         data = json.dumps({"text": text}).encode()
         req = urllib.request.Request(
             f"{_BRIDGE_URL}/push",

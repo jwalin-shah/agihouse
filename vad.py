@@ -65,7 +65,7 @@ class Segment:
 class SpeechGate:
     threshold: float = 0.5
     min_speech_ms: int = 256        # confirm speech only after this much voiced audio
-    hangover_ms: int = 416          # trailing silence required to close a segment
+    hangover_ms: int = 480          # trailing silence required to close a segment
     max_segment_ms: int = 30_000    # hard cap on a single segment (memory bound)
     keep_audio: bool = True
     vad_fn: VadFn | None = None     # injected for tests; default = silero

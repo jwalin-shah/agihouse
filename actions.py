@@ -426,44 +426,83 @@ def create_reminder(title: str, due: str | None = None) -> dict[str, Any]:
     return result
 
 
-def list_reminders(query: str | None = None) -> dict[str, Any]:
-    """Read real macOS Reminders. Optional substring filter."""
-    if _inbox_reminders_list is None:
-        result = {"action": "list_reminders", "fired": False, "reason": "inbox unavailable"}
-        _log(result)
-        _propose_to_lens("list_reminders", "(reminders unavailable)", False)
-        return result
+_REMINDERS_SEED = Path(__file__).parent / "reminders.json"
+_CALENDAR_SEED = Path(__file__).parent / "calendar.json"
+
+
+def _load_seed(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
     try:
-        rems = _inbox_reminders_list(show_completed=False, limit=20)
-    except Exception as e:
-        result = {"action": "list_reminders", "fired": False, "reason": repr(e)}
-        _log(result)
-        _propose_to_lens("list_reminders", f"(error: {e})", False)
-        return result
-    titles = [getattr(r, "title", str(r)) for r in rems]
+        return json.loads(path.read_text())
+    except Exception:
+        return []
+
+
+def list_reminders(query: str | None = None) -> dict[str, Any]:
+    """Read demo seed (reminders.json) merged with sqlite-created reminders.
+    Falls back to real macOS Reminders if both are empty.
+    """
+    items: list[dict[str, Any]] = []
+    for r in _load_seed(_REMINDERS_SEED):
+        items.append({"title": r.get("title", ""), "due": r.get("due")})
+    try:
+        with get_db() as conn:
+            rows = conn.execute("SELECT title, due FROM reminders ORDER BY created DESC").fetchall()
+        for row in rows:
+            items.append({"title": row["title"], "due": row["due"]})
+    except Exception:
+        pass
+
+    if not items and _inbox_reminders_list is not None:
+        try:
+            rems = _inbox_reminders_list(show_completed=False, limit=20)
+            items = [{"title": getattr(r, "title", str(r)), "due": None} for r in rems]
+        except Exception as e:
+            result = {"action": "list_reminders", "fired": False, "reason": repr(e)}
+            _log(result)
+            _propose_to_lens("list_reminders", f"(error: {e})", False)
+            return result
+
     if query:
         q = query.lower()
-        titles = [t for t in titles if q in t.lower()]
+        items = [it for it in items if q in (it.get("title") or "").lower()]
+
+    titles = [it["title"] for it in items]
     summary = " · ".join(titles[:5]) or "(no reminders)"
     result = {"action": "list_reminders", "fired": True, "count": len(titles),
-              "titles": titles[:10]}
+              "titles": titles[:10], "items": items[:10]}
     _log(result)
     _propose_to_lens("list_reminders", summary, True)
     return result
 
 
 def list_calendar(when: str | None = None) -> dict[str, Any]:
-    """Read calendar DB sandbox. Optional date/keyword filter."""
-    with get_db() as conn:
-        rows = conn.execute("SELECT title, when_time FROM calendar ORDER BY created DESC").fetchall()
-    items = [{"title": r["title"], "when": r["when_time"]} for r in rows]
+    """Read calendar.json seed merged with sqlite-created events. Optional date/keyword filter."""
+    items: list[dict[str, Any]] = []
+    for ev in _load_seed(_CALENDAR_SEED):
+        items.append({
+            "title": ev.get("title", ""),
+            "when": ev.get("when"),
+            "with": ev.get("with") or [],
+        })
+    try:
+        with get_db() as conn:
+            rows = conn.execute("SELECT title, when_time FROM calendar ORDER BY created DESC").fetchall()
+        for r in rows:
+            items.append({"title": r["title"], "when": r["when_time"], "with": []})
+    except Exception:
+        pass
+
     if when:
         q = when.lower()
         items = [it for it in items if q in (it.get("when") or "").lower()
                  or q in (it.get("title") or "").lower()]
+
+    items.sort(key=lambda it: it.get("when") or "")
     summary = " · ".join(f"{it['title']} {it['when']}" for it in items[:3]) or "(no events)"
     result = {"action": "list_calendar", "fired": True, "count": len(items),
-              "events": items[:5]}
+              "events": items[:8]}
     _log(result)
     _propose_to_lens("list_calendar", summary, True)
     return result

@@ -66,6 +66,11 @@ Rules:
   "I'll text Tarun the demo" → send_imessage
   "I'll text Tarun the demo tonight at 8" → schedule_imessage
   "We're meeting at 3" → add_calendar_event
+  "Let's grab coffee with Sanjay tomorrow morning" → add_calendar_event(title="Coffee with Sanjay", when="tomorrow morning")
+  "I should plan a hike this weekend" → add_calendar_event(title="Hike", when="this weekend")
+  "Putting dinner with Jay on the calendar for Friday" → add_calendar_event(title="Dinner with Jay", when="Friday")
+  "Block off Tuesday afternoon for the deck review" → add_calendar_event(title="Deck review", when="Tuesday afternoon")
+  "We should hang out with Tarun next week" → add_calendar_event(title="Hang with Tarun", when="next week")
   "Note that the build broke" → add_note
   "What are my reminders?" → list_reminders
   "What's on my calendar today?" → list_calendar(when="today")
